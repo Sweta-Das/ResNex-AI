@@ -3,6 +3,8 @@
 .env
 venv/
 __pycache__/
+.python-version
+.venv
 
 # Ignore heavy folders
 node_modules/
