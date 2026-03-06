@@ -1,231 +1,172 @@
-# ResearchCollab 🔬
+# ResearchCollab
 
-**AI-Powered Collaborative Research Platform**  
-STEM AI Hackathon 2026 · IIT Delhi × Microsoft Garage × Imperial College London
+AI-Powered Collaborative Research Platform for STEM teams. Built with Next.js 16, Clerk, Neon PostgreSQL, Prisma, Firebase, and Claude AI.
 
----
+## Features
 
-## What It Is
-
-ResearchCollab is a collaborative research workspace where students and educators work together on structured research and writing projects. AI acts as coach, writing assistant, merger, ethical auditor, and LaTeX paper generator.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 14 (App Router) + Tailwind CSS |
-| State | Zustand |
-| Rich Text | TipTap |
-| Realtime | Socket.io (separate Node.js server on Render) |
-| Database | Neon (serverless PostgreSQL) |
-| ORM | Prisma |
-| Auth | Clerk (magic link / email OTP) |
-| File Storage | Uploadthing |
-| AI | Claude API (`claude-sonnet-4-20250514`) |
-| Images | Pollinations.ai (free, no API key) |
-| Hosting | Vercel (frontend) + Render (socket server) |
+- **OTP Login** via Clerk (no passwords)
+- **Project workspaces** — each member writes their own section in a TipTap rich text editor
+- **AI Research Assistant** — Claude guides research without writing it for you
+- **Group Chat** — real-time messaging powered by Firebase Firestore
+- **Peer Review** — read and comment on teammates' submitted sections
+- **AI Merge & Bias Audit** — Claude merges all sections into one document and audits for bias
+- **LaTeX Editor** — IEEE / ACM / Generic paper format with live preview
+- **PDF Export** — download the final merged document
+- **Moderation** — every message and section is scanned before saving
+- **Contributorship Log** — transparent record of who did what
 
 ---
 
-## Folder Structure
+## Prerequisites
 
-```
-researchcollab/
-├── app/                        # Next.js pages
-│   ├── login/                  # Page 1: magic link login
-│   ├── dashboard/              # Page 2: sidebar + project tabs
-│   └── project/[id]/
-│       ├── page.tsx            # Page 3: project dashboard
-│       ├── workspace/          # Page 4: writing + AI research
-│       ├── review/             # Page 5: cross-review
-│       ├── output/             # Page 6: merged output + exports
-│       ├── latex/              # Page 7: LaTeX editor + preview
-│       └── admin/              # Page 8: admin controls
-│
-├── api/                        # Next.js API routes
-│   ├── projects/               # CRUD: projects, members, sections
-│   └── ai/                     # AI endpoints: breakdown, research, merge, etc.
-│
-├── components/
-│   ├── ui/                     # Button, Input, Badge, Modal, Avatar, Toast
-│   ├── layout/                 # Sidebar, ProjectTab, PageHeader, StatusPill
-│   ├── project/                # MemberCard, AICoachPanel, GroupChat, ContributorshipTimeline
-│   ├── workspace/              # SectionEditor, AIChat, ImageGenerator, WordCountTracker
-│   ├── review/                 # SectionViewer, CommentThread, ApproveButton
-│   ├── output/                 # MergedDocViewer, BiasReport, VisualSummary, ExportButton
-│   └── latex/                  # SectionNavigator, LaTeXEditor, LaTeXPreview
-│
-├── lib/
-│   ├── agents/
-│   │   ├── types.ts            # Agent interface (NEVER changes)
-│   │   ├── index.ts            # Agent registry (only file that changes)
-│   │   ├── researchAgent.ts    # Research assistant with web search
-│   │   ├── mergeAgent.ts       # Document merger
-│   │   ├── biasAgent.ts        # Bias auditor
-│   │   ├── latexAgent.ts       # LaTeX 10-step pipeline
-│   │   └── paperExplainer.ts   # Paper explainer (teammate plug-in)
-│   ├── claude.ts               # Claude API wrapper
-│   ├── moderation.ts           # Message moderation middleware
-│   ├── pollinations.ts         # Image generation helper
-│   ├── pdf.ts                  # PDF/TeX export logic
-│   ├── prisma.ts               # Prisma client singleton
-│   └── uploadthing.ts          # File upload helper
-│
-├── store/
-│   ├── projectStore.ts         # Zustand: current project state
-│   └── userStore.ts            # Zustand: auth + user info
-│
-├── types/
-│   └── index.ts                # All TypeScript interfaces
-│
-├── prisma/
-│   ├── schema.prisma           # Full DB schema
-│   └── seed.ts                 # Dev seed script
-│
-├── socket-server/              # Separate repo (deploy to Render)
-│   ├── index.ts                # Socket.io Node.js server
-│   └── package.json
-│
-├── middleware.ts               # Clerk auth middleware
-├── .env.example                # Environment variables template
-└── package.json
-```
+- Node.js 18+
+- A [Neon](https://neon.tech) PostgreSQL database
+- A [Clerk](https://clerk.com) application (Email OTP enabled)
+- An [Anthropic](https://console.anthropic.com) API key
+- A [Firebase](https://console.firebase.google.com) project with Firestore enabled
+- (Optional) An [Uploadthing](https://uploadthing.com) app for file uploads
 
 ---
 
-## Setup Instructions
+## Setup
 
-### 1. Clone & Install
+### 1. Clone and install
 
 ```bash
-git clone <your-repo>
+git clone https://github.com/your-username/researchcollab.git
 cd researchcollab
 npm install
 ```
 
-### 2. Environment Variables
+### 2. Environment variables
+
+Copy the example file and fill in your values:
 
 ```bash
 cp .env.example .env.local
-# Fill in all values (see .env.example for descriptions)
 ```
 
-### 3. Database Setup (Neon)
+Open `.env.local` and set:
 
-1. Create a free project at [neon.tech](https://neon.tech)
-2. Copy the connection string into `DATABASE_URL`
-3. Run migrations:
+| Variable | Where to get it |
+|---|---|
+| `DATABASE_URL` | Neon dashboard → Connection string (pooled) |
+| `DIRECT_URL` | Neon dashboard → Connection string (direct) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk dashboard → API Keys |
+| `CLERK_SECRET_KEY` | Clerk dashboard → API Keys |
+| `CLERK_WEBHOOK_SECRET` | Clerk dashboard → Webhooks |
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase console → Project Settings → Your apps |
+| `UPLOADTHING_SECRET` | uploadthing.com → Dashboard (optional) |
+| `UPLOADTHING_APP_ID` | uploadthing.com → Dashboard (optional) |
+
+### 3. Clerk setup
+
+1. Go to Clerk dashboard → **User & Authentication → Email, Phone, Username**
+2. Enable **Email address** with **Email verification code** (OTP) strategy
+3. Go to **Webhooks** → add endpoint: `https://your-domain.com/api/webhooks/clerk`
+   - Events: `user.created`, `user.updated`
+
+### 4. Firebase setup
+
+1. Go to [Firebase console](https://console.firebase.google.com) → your project
+2. **Build → Firestore Database → Create database → Start in test mode**
+3. Go to **Firestore → Rules** and publish:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /projects/{projectId}/messages/{msgId} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+### 5. Database setup
+
+Push the Prisma schema to your Neon database:
 
 ```bash
-npm run db:generate
 npm run db:push
-npm run db:seed        # optional: seed demo data
+npm run db:generate
 ```
 
-### 4. Auth Setup (Clerk)
-
-1. Create a free app at [clerk.com](https://clerk.com)
-2. Enable **Email Magic Link** or **Email OTP** as the sign-in method
-3. Copy `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-
-### 5. File Storage (Uploadthing)
-
-1. Create a free app at [uploadthing.com](https://uploadthing.com)
-2. Copy `UPLOADTHING_SECRET` and `UPLOADTHING_APP_ID`
-
-### 6. Socket Server (Render)
+Optionally seed with sample data:
 
 ```bash
-cd socket-server
-npm install
-# Deploy to Render as a Node.js web service
-# Set PORT environment variable on Render
-# Copy the Render URL to NEXT_PUBLIC_SOCKET_URL in .env.local
+npm run db:seed
 ```
 
-### 7. Run Development
+---
+
+## Running locally
 
 ```bash
-# Terminal 1: Next.js app
+npm run dev
+```
 
+Open [http://localhost:3000](http://localhost:3000)
 
+---
 
-# Terminal 2: Socket server (local)
-cd socket-server && npm run dev
+## Project structure
+
+```
+researchcollab/
+├── app/
+│   ├── login/              # OTP login page
+│   ├── dashboard/          # Project list + sidebar
+│   ├── project/[id]/
+│   │   ├── page.tsx        # Overview — members, AI coach, chat widget
+│   │   ├── chat/           # Full-page group chat (Firebase)
+│   │   ├── workspace/      # TipTap editor + AI research assistant
+│   │   ├── review/         # Peer review + comments
+│   │   ├── output/         # Merged doc + bias audit + PDF export
+│   │   ├── latex/          # LaTeX paper editor
+│   │   └── admin/          # Member management + moderation logs
+│   └── api/                # All API routes
+├── components/
+│   ├── layout/             # PageHeader, Sidebar
+│   ├── ui/                 # Button, Modal, Badge, Avatar, etc.
+│   └── workspace/          # TipTapEditor
+├── lib/
+│   ├── auth.ts             # getAuthUser() helper
+│   ├── claude.ts           # Anthropic client
+│   ├── firebase.ts         # Firestore instance
+│   ├── moderation.ts       # Content moderation
+│   ├── prisma.ts           # Prisma client
+│   └── agents/             # Pluggable AI agents (breakdown, research, merge...)
+├── prisma/
+│   └── schema.prisma       # Database schema
+└── .env.example            # Environment variable template
 ```
 
 ---
 
-## Build Order (20 Modules)
+## Deployment
 
-Build strictly in this order — each module reviewed before the next begins:
+### Vercel (recommended)
 
-| # | Module | Description |
-|---|--------|-------------|
-| 1 | DB Setup | Neon + Prisma schema, all tables, seed script |
-| 2 | Auth | Clerk magic link, login page, middleware |
-| 3 | Dashboard | Sidebar, project tabs, welcome screen |
-| 4 | Project Dashboard | Member cards, status badges, word count bars |
-| 5 | AI Coach | Topic breakdown, subtopic negotiation UI |
-| 6 | Workspace | TipTap editor, auto-save, submit flow |
-| 7 | AI Research Chat | Claude research assistant, context-aware |
-| 8 | Image Generation | Pollinations.ai integration |
-| 9 | File Upload | Uploadthing, reference PDFs |
-| 10 | Moderation | /api/ai/moderate, wraps all chat + submit |
-| 11 | Group Chat | Socket.io, realtime broadcast, moderation gate |
-| 12 | Review Page | Read-only section viewer, comments, approvals |
-| 13 | AI Merge | Merge sections, methodology, bias audit, visual |
-| 14 | Output Page | Merged doc, bias report, credits, PDF export |
-| 15 | LaTeX Agent | 10-step template + section fillers |
-| 16 | LaTeX Editor UI | CodeMirror + section navigator + confirmed state |
-| 17 | LaTeX Preview | latex.js live rendering |
-| 18 | LaTeX Regeneration | Per-section regenerate + AI Fix button |
-| 19 | Export | .tex export + LaTeX PDF export |
-| 20 | Polish | Responsive design, loading states, error handling |
+1. Push to GitHub
+2. Import repo in [Vercel](https://vercel.com)
+3. Add all environment variables from `.env.local` in Vercel project settings
+4. Deploy
+
+> `.env.local` is gitignored — never commit it. Set vars directly in Vercel dashboard.
 
 ---
 
-## Pluggable Agent Architecture
+## Tech stack
 
-To add a new AI agent:
-
-1. Create `/lib/agents/yourAgent.ts` implementing the `Agent` interface
-2. Add **one line** to `/lib/agents/index.ts`:
-   ```ts
-   import { yourAgent } from './yourAgent'
-   export const agents = {
-     ...existingAgents,
-     yourAgent, // ← only change needed
-   }
-   ```
-
-Nothing else in the codebase changes. 
-
----
-
-## Key Design Decisions
-
-- **No Supabase** — banned in India; using Neon instead
-- **No passwords** — Clerk magic link / email OTP only
-- **No real-time co-editing** — each member edits only their own section
-- **No mobile app** — web only
-- **Moderation-first** — every user message passes through Claude moderation before being saved or displayed
-- **All AI in one provider** — Claude for everything (research, merge, bias, moderation, LaTeX)
-- **Images free** — Pollinations.ai requires no API key
-
----
-
-## Ethical Features (BERA 2024 Compliant)
-
-| Feature | Purpose |
-|---------|---------|
-| Contributorship Log | Tracks every edit, AI prompt, and review with timestamp |
-| Methodology Disclosure | Auto-generates BERA-compliant AI usage paragraph |
-| Bias Audit Report | Flags gendered language and unequal attribution |
-| Message Moderation | Blocks discrimination, harassment, hate speech |
-| Workload Balancer | AI distributes subtopics equitably by word count |
-| Language Auto-detect | All AI responses in user's browser language |
-| Named Authorship | LaTeX output includes contributor credits |
-| AI Usage Disclosure | Final paper includes standardized AI disclosure |
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16 (App Router), Tailwind CSS |
+| Auth | Clerk (Email OTP) |
+| Database | Neon PostgreSQL + Prisma ORM |
+| Real-time chat | Firebase Firestore |
+| AI | Anthropic Claude (`claude-sonnet-4-20250514`) |
+| Rich text editor | TipTap |
+| File uploads | Uploadthing |
+| Image generation | Pollinations.ai (free, no key needed) |
