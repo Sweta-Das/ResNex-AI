@@ -1,0 +1,47 @@
+{
+  "name": "researchcollab",
+  "version": "1.0.0",
+  "description": "AI-Powered Collaborative Research Platform — STEM AI Hackathon 2026",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "ts-node --project tsconfig.json prisma/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@clerk/nextjs": "^6.0.0",
+    "@prisma/client": "^5.0.0",
+    "@tiptap/core": "^2.0.0",
+    "@tiptap/react": "^2.0.0",
+    "@tiptap/starter-kit": "^2.0.0",
+    "@uploadthing/react": "^7.0.0",
+    "codemirror": "^6.0.0",
+    "firebase": "^12.10.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.0",
+    "next": "^16.1.6",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "recharts": "^2.12.0",
+    "socket.io-client": "^4.7.0",
+    "uploadthing": "^7.0.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "prisma": "^5.0.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.4.0"
+  }
+}

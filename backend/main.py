@@ -4,7 +4,11 @@ from pydantic import BaseModel
 import psycopg2
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+import os
 import uvicorn
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
 
 app = FastAPI()
 
@@ -20,7 +24,7 @@ class PDFRequest(BaseModel):
     project_id: str
     file_name: str
 
-DATABASE_URL = "postgresql://neondb_owner:npg_xY5o1wZPdeLS@ep-morning-river-a19pvnuy-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 @app.post("/process-pdf")
 async def process_pdf(request: PDFRequest):

@@ -1,0 +1,185 @@
+// prisma/schema.prisma
+// MODULE 1: Full DB schema for ResearchCollab
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProjectStatus {
+  draft
+  active
+  review
+  merged
+  done
+}
+
+enum MemberRole {
+  admin
+  member
+}
+
+enum SectionStatus {
+  not_started
+  in_progress
+  submitted
+  approved
+}
+
+enum ContributionAction {
+  created
+  edited
+  ai_prompted
+  reviewed
+  merged
+}
+
+enum ChatContext {
+  workspace
+  coach
+  group_chat
+}
+
+enum ModerationContext {
+  group_chat
+  workspace_chat
+  section
+  comment
+}
+
+model User {
+  id          String   @id @default(uuid())
+  clerkId     String?  @unique
+  email       String   @unique
+  full_name   String
+  affiliation String?
+  avatar_url  String?
+  language    String   @default("en")
+  created_at  DateTime @default(now())
+
+  projectMembers     ProjectMember[]
+  sections           Section[]
+  contributorshipLogs ContributorshipLog[]
+  chatMessages       ChatMessage[]
+  moderationLogs     ModerationLog[]
+  adminProjects      Project[]
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  topic       String
+  status      ProjectStatus @default(draft)
+  admin_id    String
+  created_at  DateTime      @default(now())
+
+  admin              User                 @relation(fields: [admin_id], references: [id])
+  members            ProjectMember[]
+  sections           Section[]
+  contributorshipLogs ContributorshipLog[]
+  chatMessages       ChatMessage[]
+  moderationLogs     ModerationLog[]
+  finalOutput        FinalOutput?
+  latexDocument      LatexDocument?
+}
+
+model ProjectMember {
+  id               String        @id @default(uuid())
+  project_id       String
+  user_id          String
+  role             MemberRole
+  assigned_subtopic String?
+  section_status   SectionStatus @default(not_started)
+  joined_at        DateTime      @default(now())
+
+  project Project @relation(fields: [project_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+
+  @@unique([project_id, user_id])
+}
+
+model Section {
+  id           String    @id @default(uuid())
+  project_id   String
+  member_id    String
+  subtopic     String
+  content      String    @default("")  // TipTap rich text JSON
+  word_count   Int       @default(0)
+  submitted    Boolean   @default(false)
+  submitted_at DateTime?
+  updated_at   DateTime  @updatedAt
+
+  project Project @relation(fields: [project_id], references: [id])
+  member  User    @relation(fields: [member_id], references: [id])
+
+  @@unique([project_id, member_id])
+}
+
+model ContributorshipLog {
+  id          String             @id @default(uuid())
+  project_id  String
+  user_id     String
+  action      ContributionAction
+  description String
+  timestamp   DateTime           @default(now())
+
+  project Project @relation(fields: [project_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+}
+
+model ChatMessage {
+  id         String      @id @default(uuid())
+  project_id String
+  user_id    String?
+  role       String      // "user" | "assistant"
+  content    String
+  context    ChatContext
+  created_at DateTime    @default(now())
+
+  project Project  @relation(fields: [project_id], references: [id])
+  user    User?    @relation(fields: [user_id], references: [id])
+}
+
+model ModerationLog {
+  id         String            @id @default(uuid())
+  content    String
+  user_id    String
+  project_id String
+  context    ModerationContext
+  reason     String
+  timestamp  DateTime          @default(now())
+
+  project Project @relation(fields: [project_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+}
+
+model FinalOutput {
+  id                       String   @id @default(uuid())
+  project_id               String   @unique
+  merged_content           String   @default("")
+  methodology_disclosure   String   @default("")
+  bias_audit_report        String   @default("")
+  visual_summary_url       String?
+  pdf_url                  String?
+  generated_at             DateTime @default(now())
+
+  project Project @relation(fields: [project_id], references: [id])
+}
+
+model LatexDocument {
+  id                String   @id @default(uuid())
+  project_id        String   @unique
+  format            String   @default("Generic") // IEEE | ACM | Generic
+  sections          Json     @default("{}")
+  confirmed_sections String[] @default([])
+  generated_at      DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  project Project @relation(fields: [project_id], references: [id])
+}
