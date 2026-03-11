@@ -16,24 +16,16 @@ const SECTION_OPTIONS = [
 ]
 
 const ACTION_LABELS: Record<string, string> = {
-  save_latex: 'LaTeX',
   summarize: 'Summary',
   compare: 'Comparison',
-  equation_image: 'Equation',
-  table: 'Table',
-  figure_latex: 'Figure',
   analyze_image: 'Image Analysis',
   add_to_library: 'Library Import',
   describe_data: 'Results Draft',
 }
 
 const ACTION_ICONS: Record<string, string> = {
-  save_latex: '📄',
   summarize: '📝',
   compare: '🔍',
-  equation_image: '🔢',
-  table: '📊',
-  figure_latex: '🖼',
   analyze_image: '🔍',
   add_to_library: '📚',
   describe_data: '📈',
@@ -46,24 +38,9 @@ interface Props {
 }
 
 export function AgentResultCard({ item, projectId, onShareToChat }: Props) {
-  const { markAddedToLatex, markSharedToChat, setTargetSection } = useAgentStore()
+  const { markSharedToChat, setTargetSection } = useAgentStore()
   const [sharing, setSharing] = useState(false)
-  const [adding, setAdding] = useState(false)
   const [expanded, setExpanded] = useState(false)
-
-  async function handleAddToLatex() {
-    setAdding(true)
-    try {
-      await fetch(`/api/projects/${projectId}/chat/agent-flag`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: item.id, addedToLatex: true }),
-      })
-      markAddedToLatex(item.id)
-    } finally {
-      setAdding(false)
-    }
-  }
 
   async function handleShare() {
     setSharing(true)
@@ -103,11 +80,6 @@ export function AgentResultCard({ item, projectId, onShareToChat }: Props) {
           <span className="text-xs font-semibold text-[#e8eaf0]">
             {ACTION_LABELS[item.action] || item.action}
           </span>
-          {item.addedToLatex && (
-            <span className="text-[9px] bg-[#3ecf8e]/15 text-[#3ecf8e] border border-[#3ecf8e]/20 px-1.5 py-0.5 rounded-full font-bold">
-              IN PIPELINE
-            </span>
-          )}
         </div>
         <span className="text-[10px] text-[#3d4558]">{time}</span>
       </div>
@@ -155,19 +127,6 @@ export function AgentResultCard({ item, projectId, onShareToChat }: Props) {
           >
             {sharing ? '…' : '📤 Share to Chat'}
           </button>
-        )}
-        {!item.addedToLatex ? (
-          <button
-            onClick={handleAddToLatex}
-            disabled={adding}
-            className="flex-1 text-[10px] font-bold bg-[#4f8ef7]/15 hover:bg-[#4f8ef7]/25 text-[#4f8ef7] border border-[#4f8ef7]/20 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {adding ? '…' : '⚡ Add to Pipeline'}
-          </button>
-        ) : (
-          <div className="flex-1 text-[10px] font-bold text-center text-[#3ecf8e] bg-[#3ecf8e]/10 border border-[#3ecf8e]/20 px-2 py-1.5 rounded-lg">
-            ✓ In Pipeline
-          </div>
         )}
       </div>
     </div>

@@ -71,20 +71,6 @@ export function AgentPanel({ projectId, onShareToChat }: Props) {
         )}
       </div>
 
-      {/* Pipeline button */}
-      {items.some((i) => i.addedToLatex) && (
-        <div className="p-3 border-t border-[#1a1f2e]">
-          <a
-            href={`/project/${projectId}/latex`}
-            className="block w-full text-center text-xs font-bold bg-[#7c6af5] hover:bg-[#6b5ce7] text-white px-4 py-2.5 rounded-xl transition-colors"
-          >
-            ⚡ Run LaTeX Pipeline →
-          </a>
-          <p className="text-[10px] text-[#3d4558] text-center mt-1">
-            {items.filter((i) => i.addedToLatex).length} item{items.filter((i) => i.addedToLatex).length !== 1 ? 's' : ''} queued
-          </p>
-        </div>
-      )}
     </div>
   )
 }

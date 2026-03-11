@@ -10,9 +10,6 @@ import { Project, ProjectMember, ContributorshipLog } from '../../../types'
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore'
 import { db } from '../../../lib/firebase'
 import { ModerationAlerts, useModerationAlertCount } from '../../../components/project/ModerationAlerts'
-import LatexDrawer from '../../../components/latex/LatexDrawer'
-import OpenLatexButton from '../../../components/latex/OpenLatexButton'
-
 const TABS = (id: string) => [
   { label: 'Overview', href: `/project/${id}`, icon: '⬡' },
   { label: 'Chat', href: `/project/${id}/chat`, icon: '💬' },
@@ -22,7 +19,6 @@ const TABS = (id: string) => [
   { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
   { label: 'Review', href: `/project/${id}/review`, icon: '👁' },
   { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },
-  { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
 ]
 
 function MemberCard({ member, section, targetWords }: { member: ProjectMember; section?: any; targetWords?: number }) {
@@ -462,8 +458,7 @@ export default function ProjectDashboard() {
           activeTab={tabs[0].href}
           actions={
             <div className="flex items-center gap-2">
-              <OpenLatexButton />
-              {myRole === 'admin' && allSubmitted && project.status === 'active' && (
+{myRole === 'admin' && allSubmitted && project.status === 'active' && (
                 <Button onClick={triggerMerge} variant="success" size="sm" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
@@ -565,7 +560,6 @@ export default function ProjectDashboard() {
                   {[
                     { label: 'Review', href: `/project/${id}/review`, icon: '👁', desc: 'Read team sections' },
                     { label: 'Output', href: `/project/${id}/output`, icon: '⬇', desc: 'Merged document' },
-                    { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ', desc: 'Academic paper editor' },
                     ...(myRole === 'admin' ? [{ label: 'Admin', href: `/project/${id}/admin`, icon: '⚙', desc: 'Manage project' }] : []),
                   ].map(nav => (
                     <button
@@ -586,7 +580,6 @@ export default function ProjectDashboard() {
           </div>
         </div>
       </div>
-      <LatexDrawer projectId={id} />
     </>
   )
 }

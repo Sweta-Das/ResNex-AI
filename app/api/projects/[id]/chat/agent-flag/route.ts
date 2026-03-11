@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'action is required' }, { status: 400 })
   }
 
-  const validActions = ['save_latex', 'summarize', 'compare', 'equation_image', 'table', 'figure_latex', 'analyze_image', 'add_to_library', 'describe_data']
+  const validActions = ['summarize', 'compare', 'analyze_image', 'add_to_library', 'describe_data']
   if (!validActions.includes(action)) {
     return NextResponse.json({ error: `Invalid action. Use one of: ${validActions.join(', ')}` }, { status: 400 })
   }
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     result: p.result.slice(0, 400),
   }))
 
-  const orchestratedActions = ['save_latex', 'summarize', 'compare', 'equation_image', 'table', 'figure_latex', 'add_to_library', 'describe_data']
+  const orchestratedActions = ['summarize', 'compare', 'add_to_library', 'describe_data']
   if (orchestratedActions.includes(action)) {
     try {
       const output = await orchestratorAgent({
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest, { params }: Params) {
           projectId: id,
           userId: user.id,
           action: output.action,
-          result: output.latex,
+          result: output.result,
         },
         orderBy: { createdAt: 'desc' },
       })

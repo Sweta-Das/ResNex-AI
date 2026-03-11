@@ -11,17 +11,12 @@ interface AgentAction {
 }
 
 const DEFAULT_ACTIONS: AgentAction[] = [
-  { id: 'save_latex', icon: '📄', label: 'Convert to LaTeX', description: 'Format as LaTeX markup' },
   { id: 'summarize', icon: '📝', label: 'Summarize & Save', description: 'Summarize for paper section' },
   { id: 'compare', icon: '🔍', label: 'Analyze & Compare', description: 'Compare with library papers' },
-  { id: 'equation_image', icon: '🔢', label: 'Equation → LaTeX', description: 'Convert equation description' },
-  { id: 'table', icon: '📊', label: 'Data → LaTeX Table', description: 'Format data as LaTeX table' },
 ]
 
 const FILE_ACTIONS: Record<FileType, AgentAction[]> = {
   image: [
-    { id: 'equation_image', icon: '🔢', label: 'Convert equation from image', description: 'Extract & convert math to LaTeX' },
-    { id: 'figure_latex', icon: '🖼', label: 'Add as figure to LaTeX', description: 'Insert \\includegraphics in paper' },
     { id: 'analyze_image', icon: '🔍', label: 'Analyze image content', description: 'Describe and summarize the image' },
   ],
   pdf: [
@@ -30,7 +25,6 @@ const FILE_ACTIONS: Record<FileType, AgentAction[]> = {
     { id: 'compare', icon: '🔍', label: 'Analyze & compare with papers', description: 'Compare with library papers' },
   ],
   csv: [
-    { id: 'table', icon: '📊', label: 'Convert to LaTeX table', description: 'Generate \\begin{table} block' },
     { id: 'describe_data', icon: '📈', label: 'Describe data for Results', description: 'Write results text from data' },
   ],
 }

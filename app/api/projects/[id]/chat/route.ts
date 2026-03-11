@@ -130,16 +130,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           .map((r, i) => `[${i + 1}] **${r.title}**\n${r.authors.slice(0, 2).join(', ')} (${r.published.slice(0, 4)})\n${r.abstract.slice(0, 200)}...\n${r.url}`)
           .join('\n\n')
         agentReply = `Here are arXiv results for "${query}":\n\n${formatted}`
-      } else if (/^latex\s+(.+)/i.test(command)) {
-        const latexAgent = getAgent('latex')
-        if (latexAgent) {
-          const out = await latexAgent.run({
-            messages: [...agentMessages, { role: 'user', content: command }],
-            context: { step: 'results' },
-            language: user.language,
-          })
-          agentReply = out.reply
-        }
       } else if (/^summarize/i.test(command)) {
         const mergeAgent = getAgent('merge')
         if (mergeAgent) {

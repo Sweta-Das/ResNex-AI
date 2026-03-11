@@ -5,7 +5,6 @@
 import { researchAgent } from './researchAgent'
 import { mergeAgent } from './mergeAgent'
 import { biasAgent } from './biasAgent'
-import { latexAgent } from './latexAgent'
 import { paperExplainer } from './paperExplainer'
 import { researchSearchAgent } from './researchSearchAgent'
 import { writerAgent } from './writerAgent'
@@ -17,7 +16,6 @@ export const agents: Record<string, Agent> = {
   research: researchAgent,
   merge: mergeAgent,
   bias: biasAgent,
-  latex: latexAgent,
   paperExplainer: paperExplainer,
   'research-search': researchSearchAgent,
   writer: writerAgent,
@@ -29,5 +27,5 @@ export function getAgent(id: string): Agent | undefined {
   return agents[id]
 }
 
-export { researchAgent, mergeAgent, biasAgent, latexAgent, paperExplainer, researchSearchAgent, writerAgent, plannerAgent, chatSummarizerAgent }
+export { researchAgent, mergeAgent, biasAgent, paperExplainer, researchSearchAgent, writerAgent, plannerAgent, chatSummarizerAgent }
 export type { Agent, AgentInput, AgentOutput } from './types'
