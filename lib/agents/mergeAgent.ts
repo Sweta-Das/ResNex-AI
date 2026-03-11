@@ -2,7 +2,7 @@
 // Merges all submitted sections into one cohesive document. Preserves each author's voice.
 
 import { Agent, AgentInput, AgentOutput } from './types'
-import { callClaude } from '../claude'
+import { callLLM } from '../llm'
 
 const SYSTEM_PROMPT = `You are merging {n} independently written sections into
 one cohesive research document on {topic}.
@@ -32,7 +32,7 @@ export const mergeAgent: Agent = {
 
     const userMessage = messages[messages.length - 1]?.content || sectionsText
 
-    const reply = await callClaude(system, userMessage, language)
+    const reply = await callLLM({ messages: [{ role: 'user', content: userMessage }], system, language })
     return { reply }
   },
 }

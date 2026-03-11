@@ -90,7 +90,7 @@ export function StatusPill({ status }: { status: string }) {
   )
 }
 
-export function Badge({ children, color = 'blue' }: { children: React.ReactNode; color?: 'blue' | 'green' | 'amber' | 'red' | 'gray' }) {
+export function Badge({ children, color = 'blue', className = '' }: { children: React.ReactNode; color?: 'blue' | 'green' | 'amber' | 'red' | 'gray'; className?: string }) {
   const colors = {
     blue:  'bg-[#4f8ef7]/12 text-[#4f8ef7] border-[#4f8ef7]/20',
     green: 'bg-[#3ecf8e]/12 text-[#3ecf8e] border-[#3ecf8e]/20',
@@ -99,14 +99,14 @@ export function Badge({ children, color = 'blue' }: { children: React.ReactNode;
     gray:  'bg-[#7a839a]/12 text-[#7a839a] border-[#7a839a]/20',
   }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colors[color]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colors[color]} ${className}`}>
       {children}
     </span>
   )
 }
 
 // ─── Avatar ────────────────────────────────────────────────────────────────────
-export function Avatar({ name, src, size = 32 }: { name: string; src?: string; size?: number }) {
+export function Avatar({ name, src, size = 32, className = '' }: { name: string; src?: string; size?: number; className?: string }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
   const colors = ['#4f8ef7','#7c6af5','#3ecf8e','#f59e0b','#ef4444','#ec4899']
   const color = colors[name.charCodeAt(0) % colors.length]
@@ -221,12 +221,13 @@ export function ToastProvider() {
 }
 
 // ─── Card ──────────────────────────────────────────────────────────────────────
-export function Card({ children, className = '', onClick }: {
-  children: React.ReactNode; className?: string; onClick?: () => void
+export function Card({ children, className = '', onClick, style }: {
+  children: React.ReactNode; className?: string; onClick?: () => void; style?: React.CSSProperties
 }) {
   return (
     <div
       onClick={onClick}
+      style={style}
       className={`bg-[#12151c] border border-[#252a38] rounded-xl p-5
         ${onClick ? 'cursor-pointer hover:border-[#2e3548] transition-colors' : ''} ${className}`}
     >

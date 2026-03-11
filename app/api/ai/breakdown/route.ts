@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../lib/auth'
 import { prisma } from '../../../../lib/prisma'
-import { callClaude, parseJsonResponse } from '../../../../lib/claude'
+import { callLLM, parseJsonResponse } from '../../../../lib/llm'
 import { SubtopicAssignment } from '../../../../types'
 
 const COACH_SYSTEM = `You are a collaborative research coach for STEM students.
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const system = COACH_SYSTEM.replace('{n}', String(members.length))
   const userMessage = `Topic: ${topic}\nMembers: ${members.map((m: any) => `${m.id}: ${m.name}`).join(', ')}`
 
-  const raw = await callClaude(system, userMessage, user.language)
+  const raw = await callLLM({ messages: [{ role: 'user', content: userMessage }], system, language: user.language })
   const assignments = parseJsonResponse<SubtopicAssignment[]>(raw)
 
   // Log AI use

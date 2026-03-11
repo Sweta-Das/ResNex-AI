@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../lib/auth'
 import { prisma } from '../../../../../lib/prisma'
-import { callClaude } from '../../../../../lib/claude'
+import { callLLM } from '../../../../../lib/llm'
 
 export async function POST(req: NextRequest) {
   const user = await getAuthUser()
@@ -19,7 +19,11 @@ export async function POST(req: NextRequest) {
 Choose from: IEEE | ACM | Generic. Return JSON only: { "format": "...", "reason": "..." }`
 
   const userMsg = JSON.stringify({ topic: project.topic, description: project.description })
-  const raw = await callClaude(system, userMsg, user.language)
+  const raw = await callLLM({
+    system,
+    messages: [{ role: 'user', content: userMsg }],
+    language: user.language,
+  })
 
   let parsed: { format: string; reason: string }
   try {

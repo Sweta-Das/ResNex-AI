@@ -2,7 +2,7 @@
 // 10-step LaTeX pipeline: picks template, fills each LaTeX section from project data.
 
 import { Agent, AgentInput, AgentOutput } from './types'
-import { callClaude } from '../claude'
+import { callLLM } from '../llm'
 
 const STEP_PROMPTS: Record<string, string> = {
   template: `Given the research topic and description, pick the best academic paper format.
@@ -52,7 +52,7 @@ export const latexAgent: Agent = {
     }
 
     const userMessage = messages[messages.length - 1]?.content || JSON.stringify(context)
-    const reply = await callClaude(prompt, userMessage, language)
+    const reply = await callLLM({ messages: [{ role: 'user', content: userMessage }], system: prompt, language })
 
     return { reply }
   },
@@ -85,7 +85,7 @@ export async function runFullLatexPipeline(
     const contextForStep = buildContextForStep(step, projectData)
     const userMessage = JSON.stringify(contextForStep)
 
-    const raw = await callClaude(STEP_PROMPTS[step], userMessage, language)
+    const raw = await callLLM({ messages: [{ role: 'user', content: userMessage }], system: STEP_PROMPTS[step], language })
     results[step] = raw
   }
 

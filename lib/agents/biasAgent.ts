@@ -2,7 +2,7 @@
 // Audits merged content for gendered language, unconscious bias, unequal attribution.
 
 import { Agent, AgentInput, AgentOutput } from './types'
-import { callClaude, parseJsonResponse } from '../claude'
+import { callLLM, parseJsonResponse } from '../llm'
 
 const SYSTEM_PROMPT = `Audit the following research document for:
 - Gendered language or assumptions
@@ -21,7 +21,7 @@ export const biasAgent: Agent = {
     const { messages, language } = input
     const userMessage = messages[messages.length - 1]?.content || ''
 
-    const raw = await callClaude(SYSTEM_PROMPT, userMessage, language)
+    const raw = await callLLM({ messages: [{ role: 'user', content: userMessage }], system: SYSTEM_PROMPT, language })
 
     let parsed: any
     try {

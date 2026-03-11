@@ -9,11 +9,17 @@ import { Avatar, Button, StatusPill, ProgressBar, Badge, Card, Modal, Input, Emp
 import { Project, ProjectMember, ContributorshipLog } from '../../../types'
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore'
 import { db } from '../../../lib/firebase'
+import { ModerationAlerts, useModerationAlertCount } from '../../../components/project/ModerationAlerts'
+import LatexDrawer from '../../../components/latex/LatexDrawer'
+import OpenLatexButton from '../../../components/latex/OpenLatexButton'
 
 const TABS = (id: string) => [
   { label: 'Overview', href: `/project/${id}`, icon: '⬡' },
   { label: 'Chat', href: `/project/${id}/chat`, icon: '💬' },
-  { label: 'Workspace', href: `/project/${id}/workspace`, icon: '✏' },
+  { label: 'Discover', href: `/project/${id}/discover`, icon: '🔍' },
+  { label: 'Library', href: `/project/${id}/library`, icon: '📚' },
+  { label: 'Compare', href: `/project/${id}/compare`, icon: '⇄' },
+  { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
   { label: 'Review', href: `/project/${id}/review`, icon: '👁' },
   { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },
   { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
@@ -140,7 +146,10 @@ function AICoachPanel({ projectId, topic, members, onAssigned }: {
   )
 }
 
-interface SimpleMsg { id: string; content: string; userId: string; userFullName: string; userAvatarUrl?: string; createdAt: Date }
+interface SimpleMsg {
+  id: string; content: string; userId: string | null; userFullName: string
+  userAvatarUrl?: string; createdAt: Date; messageType?: string
+}
 
 function GroupChat({ projectId }: { projectId: string }) {
   const { user } = useUser()
@@ -148,6 +157,7 @@ function GroupChat({ projectId }: { projectId: string }) {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [flagged, setFlagged] = useState('')
+  const [showMention, setShowMention] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const loadTimeRef = useRef<Date>(new Date())
   const { error } = useToast()
@@ -155,13 +165,14 @@ function GroupChat({ projectId }: { projectId: string }) {
   // Load history from Postgres
   useEffect(() => {
     fetch(`/api/projects/${projectId}/chat`)
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : [])
       .then((msgs: any[]) => {
         setMessages(msgs.map(m => ({
           id: m.id, content: m.content, userId: m.user_id,
-          userFullName: m.user?.full_name || 'Unknown',
+          userFullName: m.user?.full_name || (m.user_id === null ? '🤖 ResearchBot' : 'Unknown'),
           userAvatarUrl: m.user?.avatar_url,
           createdAt: new Date(m.created_at),
+          messageType: m.messageType,
         })))
         loadTimeRef.current = new Date()
       })
@@ -217,7 +228,20 @@ function GroupChat({ projectId }: { projectId: string }) {
         userAvatarUrl: user.imageUrl || null,
         createdAt: serverTimestamp(),
       })
-      setMessages(prev => [...prev, { id: saved.id, content, userId: user.id, userFullName: user.fullName || user.firstName || 'Unknown', userAvatarUrl: user.imageUrl, createdAt: new Date() }])
+      setMessages(prev => [...prev, {
+        id: saved.id, content, userId: user.id,
+        userFullName: user.fullName || user.firstName || 'Unknown',
+        userAvatarUrl: user.imageUrl, createdAt: new Date(),
+        messageType: saved.messageType || 'text',
+      }])
+      // If agent responded, append bot message
+      if (saved.agentReply) {
+        setMessages(prev => [...prev, {
+          id: `bot-${saved.id}`, content: saved.agentReply, userId: null,
+          userFullName: '🤖 ResearchBot', createdAt: new Date(),
+          messageType: 'agent_response',
+        }])
+      }
     } catch { error('Failed to send message'); setInput(content) }
     finally { setSending(false) }
   }
@@ -237,6 +261,40 @@ function GroupChat({ projectId }: { projectId: string }) {
         ) : (
           messages.map((msg) => {
             const isMe = msg.userId === user?.id
+            const isBot = msg.messageType === 'agent_response'
+            const isShare = msg.messageType === 'research_share'
+
+            if (isBot) {
+              return (
+                <div key={msg.id} className="flex gap-2">
+                  <div className="w-6 h-6 rounded-full bg-[#7c6af5]/20 text-[#7c6af5] flex items-center justify-center text-[10px] font-bold flex-shrink-0">🤖</div>
+                  <div className="max-w-[85%] flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[10px] text-[#7c6af5] px-1 font-medium">ResearchBot</p>
+                      <span className="text-[9px] bg-[#7c6af5]/15 text-[#7c6af5] rounded-full px-1.5 py-0.5">bot</span>
+                    </div>
+                    <div className="px-3 py-2 rounded-xl rounded-tl-sm text-xs bg-[#7c6af5]/10 border border-[#7c6af5]/20 text-[#c8cad0] whitespace-pre-wrap">
+                      {msg.content}
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
+            if (isShare) {
+              return (
+                <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                  <Avatar name={msg.userFullName} src={msg.userAvatarUrl} size={26} />
+                  <div className={`max-w-[80%] flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+                    {!isMe && <p className="text-[10px] text-[#7a839a] px-1">{msg.userFullName}</p>}
+                    <div className="px-3 py-2 rounded-xl text-xs bg-[#4f8ef7]/10 border border-[#4f8ef7]/20 text-[#c8cad0] whitespace-pre-wrap">
+                      {msg.content}
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
             return (
               <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
                 <Avatar name={msg.userFullName} src={msg.userAvatarUrl} size={26} />
@@ -261,11 +319,30 @@ function GroupChat({ projectId }: { projectId: string }) {
         </p>
       )}
 
-      <form onSubmit={sendMessage} className="flex gap-2">
+      <form onSubmit={sendMessage} className="flex gap-2 relative">
+        {showMention && (
+          <div className="absolute bottom-12 left-0 bg-[#1a1f2e] border border-[#252a38] rounded-xl p-2 shadow-xl z-10">
+            <button
+              type="button"
+              onClick={() => { setInput('@researchbot '); setShowMention(false) }}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#252a38] transition-colors text-left w-full"
+            >
+              <span className="text-sm">🤖</span>
+              <div>
+                <p className="text-xs font-semibold text-[#e8eaf0]">@researchbot</p>
+                <p className="text-[10px] text-[#7a839a]">Ask the AI agent</p>
+              </div>
+            </button>
+          </div>
+        )}
         <input
           value={input}
-          onChange={e => { setInput(e.target.value); setFlagged('') }}
-          placeholder="Message the team..."
+          onChange={e => {
+            setInput(e.target.value)
+            setFlagged('')
+            setShowMention(e.target.value.endsWith('@'))
+          }}
+          placeholder="Message the team... (type @ to mention bot)"
           className="flex-1 bg-[#0a0c10] border border-[#252a38] rounded-lg px-3 py-2 text-xs
             text-[#e8eaf0] placeholder:text-[#3d4558] focus:outline-none focus:border-[#4f8ef7] transition-all"
         />
@@ -333,6 +410,8 @@ export default function ProjectDashboard() {
   const [logs, setLogs] = useState<ContributorshipLog[]>([])
   const [myRole, setMyRole] = useState<string>('member')
   const [loading, setLoading] = useState(true)
+  const [activePanel, setActivePanel] = useState<'overview' | 'moderation'>('overview')
+  const alertCount = useModerationAlertCount(id, myRole === 'admin')
 
   useEffect(() => { fetchProject() }, [id])
 
@@ -382,22 +461,65 @@ export default function ProjectDashboard() {
           tabs={tabs}
           activeTab={tabs[0].href}
           actions={
-            myRole === 'admin' && allSubmitted && project.status === 'active' ? (
-              <Button onClick={triggerMerge} variant="success" size="sm" icon={
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                </svg>
-              }>
-                Merge All Sections
-              </Button>
-            ) : null
+            <div className="flex items-center gap-2">
+              <OpenLatexButton />
+              {myRole === 'admin' && allSubmitted && project.status === 'active' && (
+                <Button onClick={triggerMerge} variant="success" size="sm" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                  </svg>
+                }>
+                  Merge All Sections
+                </Button>
+              )}
+            </div>
           }
         />
 
         <div className="flex-1 overflow-y-auto p-8 bg-[#0a0c10]">
           <div className="max-w-6xl mx-auto grid grid-cols-3 gap-6">
-            {/* Left column — members */}
+            {/* Left column — members / moderation */}
             <div className="col-span-2 flex flex-col gap-6">
+              {/* Admin panel tabs */}
+              {myRole === 'admin' && (
+                <div className="flex gap-1 bg-[#0d1018] border border-[#1a1f2e] rounded-xl p-1 w-fit">
+                  <button
+                    onClick={() => setActivePanel('overview')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      activePanel === 'overview'
+                        ? 'bg-[#1a1f2e] text-[#e8eaf0]'
+                        : 'text-[#7a839a] hover:text-[#e8eaf0]'
+                    }`}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => setActivePanel('moderation')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                      activePanel === 'moderation'
+                        ? 'bg-[#1a1f2e] text-[#e8eaf0]'
+                        : 'text-[#7a839a] hover:text-[#e8eaf0]'
+                    }`}
+                  >
+                    Moderation
+                    {alertCount > 0 && (
+                      <span className="bg-[#f43f5e] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {alertCount > 9 ? '9+' : alertCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {activePanel === 'moderation' && myRole === 'admin' ? (
+                <>
+                  <h2 className="text-xs font-semibold text-[#3d4558] uppercase tracking-widest">
+                    Moderation Alerts
+                  </h2>
+                  <ModerationAlerts projectId={id} />
+                </>
+              ) : (
+              <>
               {/* Member cards */}
               <div>
                 <h2 className="text-xs font-semibold text-[#3d4558] uppercase tracking-widest mb-4">
@@ -428,6 +550,8 @@ export default function ProjectDashboard() {
 
               {/* Contributorship log */}
               <ContributorshipTimeline logs={logs} />
+              </>
+              )}
             </div>
 
             {/* Right column — chat */}
@@ -439,7 +563,6 @@ export default function ProjectDashboard() {
                 <h3 className="font-semibold text-sm text-[#e8eaf0] mb-3">Quick Access</h3>
                 <div className="flex flex-col gap-2">
                   {[
-                    { label: 'My Workspace', href: `/project/${id}/workspace`, icon: '✏', desc: 'Write your section' },
                     { label: 'Review', href: `/project/${id}/review`, icon: '👁', desc: 'Read team sections' },
                     { label: 'Output', href: `/project/${id}/output`, icon: '⬇', desc: 'Merged document' },
                     { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ', desc: 'Academic paper editor' },
@@ -463,6 +586,7 @@ export default function ProjectDashboard() {
           </div>
         </div>
       </div>
+      <LatexDrawer projectId={id} />
     </>
   )
 }

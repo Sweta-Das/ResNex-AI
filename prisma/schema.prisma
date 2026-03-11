@@ -2,13 +2,15 @@
 // MODULE 1: Full DB schema for ResearchCollab
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pgvector(map: "vector")]
 }
 
 enum ProjectStatus {
@@ -85,8 +87,18 @@ model Project {
   contributorshipLogs ContributorshipLog[]
   chatMessages       ChatMessage[]
   moderationLogs     ModerationLog[]
+  moderationAlerts   ModerationAlert[]
+  documentChunks     DocumentChunk[]
+  papers             Paper[]
   finalOutput        FinalOutput?
   latexDocument      LatexDocument?
+  agentPanelItems    AgentPanelItem[]
+  dailyContributions DailyContribution[]
+  contributorshipNew ContributorshipNew[]
+  latexAssets        LatexAsset[]
+  teamStreak         Int      @default(0)
+  longestStreak      Int      @default(0)
+  lastStreakDate     DateTime?
 }
 
 model ProjectMember {
@@ -114,6 +126,7 @@ model Section {
   submitted    Boolean   @default(false)
   submitted_at DateTime?
   updated_at   DateTime  @updatedAt
+  versions     Json[]    @default([])
 
   project Project @relation(fields: [project_id], references: [id])
   member  User    @relation(fields: [member_id], references: [id])
@@ -134,13 +147,19 @@ model ContributorshipLog {
 }
 
 model ChatMessage {
-  id         String      @id @default(uuid())
-  project_id String
-  user_id    String?
-  role       String      // "user" | "assistant"
-  content    String
-  context    ChatContext
-  created_at DateTime    @default(now())
+  id            String      @id @default(uuid())
+  project_id    String
+  user_id       String?
+  role          String      // "user" | "assistant"
+  content       String
+  context       ChatContext
+  messageType   String?     // "text" | "research_share" | "agent_response"
+  agentAction   String?     // "equation_image" | "table" | "save_latex" | "summarize" | "compare"
+  agentResult   String?     // converted LaTeX output
+  agentStatus   String?     // "pending" | "processed" | "added_to_latex"
+  targetSection String?     // which LaTeX section this maps to
+  attachments   Json        @default("[]")  // [{ url, type, fileName, size }]
+  created_at    DateTime    @default(now())
 
   project Project  @relation(fields: [project_id], references: [id])
   user    User?    @relation(fields: [user_id], references: [id])
@@ -172,14 +191,141 @@ model FinalOutput {
   project Project @relation(fields: [project_id], references: [id])
 }
 
+model ModerationAlert {
+  id             String   @id @default(uuid())
+  projectId      String
+  reportedUserId String
+  adminId        String
+  messages       Json     // last 10 messages as context
+  flaggedMsg     String
+  reason         String
+  severity       String   // 'low' | 'medium' | 'high'
+  reviewed       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("moderation_alerts")
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid())
+  projectId  String
+  memberId   String
+  fileName   String
+  fileUrl    String
+  chunkIndex Int
+  content    String
+  embedding  Unsupported("vector(384)")?
+  createdAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("document_chunks")
+}
+
+model Paper {
+  id        String   @id @default(uuid())
+  projectId String
+  title     String
+  authors   String[] @default([])
+  abstract  String?
+  year      Int?
+  arxivId   String?
+  doi       String?
+  url       String?
+  fileUrl   String?
+  status    String   @default("pending") // pending | processing | ready | failed
+  summary   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tags      String[] @default([])
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("papers")
+}
+
 model LatexDocument {
   id                String   @id @default(uuid())
   project_id        String   @unique
   format            String   @default("Generic") // IEEE | ACM | Generic
+  template          String   @default("generic")  // "neurips" | "generic" | etc.
   sections          Json     @default("{}")
   confirmed_sections String[] @default([])
+  preview           String?  // unsaved agent-generated draft
+  confirmed         Boolean  @default(false)
+  sectionSources    Json     @default("{}")  // { "Introduction": "member_section", ... }
+  figures           Json[]   @default([])   // [{ url, caption, sectionUsedIn }]
+  tables            Json[]   @default([])
+  citations         Json[]   @default([])   // [{ bibKey, title, authors, year, doi }]
+  citationStyle     String   @default("ieee")
   generated_at      DateTime @default(now())
   updated_at        DateTime @updatedAt
 
   project Project @relation(fields: [project_id], references: [id])
+}
+
+model AgentPanelItem {
+  id            String   @id @default(uuid())
+  projectId     String
+  userId        String
+  action        String   // "equation_image" | "save_latex" | "summarize" | "compare" | "table"
+  sourceMessage String
+  result        String
+  context       Json     @default("[]")  // previous results passed as context
+  targetSection String?
+  sharedToChat  Boolean  @default(false)
+  addedToLatex  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("agent_panel_items")
+}
+
+model DailyContribution {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  date      DateTime
+  actions   String[]
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+  @@unique([projectId, userId, date])
+  @@map("daily_contributions")
+}
+
+model ContributorshipNew {
+  id          String   @id @default(uuid())
+  projectId   String
+  userId      String
+  sectionName String?
+  wordCount   Int      @default(0)
+  humanWords  Int      @default(0)
+  aiWords     Int      @default(0)
+  action      String
+  details     String?
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+  @@index([projectId, userId])
+  @@map("contributorship_new")
+}
+
+model LatexAsset {
+  id         String   @id @default(uuid())
+  projectId  String
+  userId     String
+  fileName   String
+  fileType   String   // "image" | "csv" | "pdf"
+  url        String
+  mimeType   String
+  sizeBytes  Int      @default(0)
+  uploadedAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("latex_assets")
 }

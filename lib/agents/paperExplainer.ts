@@ -3,7 +3,7 @@
 // Plug-in slot: ready to receive PDF content as context.
 
 import { Agent, AgentInput, AgentOutput } from './types'
-import { callClaudeMultiTurn } from '../claude'
+import { callLLM } from '../llm'
 
 const SYSTEM_PROMPT = `You are a research paper explainer helping STEM students understand academic papers.
 
@@ -25,7 +25,7 @@ export const paperExplainer: Agent = {
     const { subtopic = 'their topic' } = context
 
     const system = SYSTEM_PROMPT.replace('{subtopic}', subtopic)
-    const reply = await callClaudeMultiTurn(system, messages, language)
+    const reply = await callLLM({ messages, system, language })
 
     return { reply }
   },

@@ -3,7 +3,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../lib/auth'
 import { prisma } from '../../../../../lib/prisma'
-import { moderateAndLog } from '../../../../../lib/moderation'
+import { moderateWithContextAndAlert } from '../../../../../lib/moderation'
+import { callLLM } from '../../../../../lib/llm'
+import { researchSearchAgent, searchArxiv } from '../../../../../lib/agents/researchSearchAgent'
+import { getAgent } from '../../../../../lib/agents'
 
 // GET /api/projects/[id]/chat
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -19,7 +22,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const messages = await prisma.chatMessage.findMany({
     where: { project_id: id, context: 'group_chat' },
-    include: { user: { select: { id: true, full_name: true, avatar_url: true } } },
+    select: {
+      id: true, content: true, role: true, created_at: true, attachments: true,
+      user_id: true, user: { select: { id: true, full_name: true, avatar_url: true } },
+    },
     orderBy: { created_at: 'desc' },
     take: 50,
   })
@@ -40,22 +46,45 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!member) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { content } = body
+  const { content, messageType, attachments = [] } = body
 
-  if (!content?.trim()) return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 })
+  if (!content?.trim() && attachments.length === 0) {
+    return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 })
+  }
 
-  // Moderation gate — message must pass before save
-  const modResult = await moderateAndLog({
-    content,
+  // Fetch last 10 group chat messages for context moderation
+  const recentMessages = await prisma.chatMessage.findMany({
+    where: { project_id: id, context: 'group_chat' },
+    include: { user: { select: { full_name: true } } },
+    orderBy: { created_at: 'desc' },
+    take: 10,
+  })
+  const contextMessages = recentMessages.reverse().map((m) => ({
+    role: m.role,
+    content: m.content,
+    userName: m.user?.full_name || 'Unknown',
+  }))
+
+  // Find project admin id for alert creation
+  const project = await prisma.project.findUnique({ where: { id }, select: { admin_id: true } })
+  const adminId = project?.admin_id || user.id
+
+  // Context-aware moderation gate
+  const modResult = await moderateWithContextAndAlert({
+    newMessage: content,
+    contextMessages,
     context: 'group_chat',
     userId: user.id,
     projectId: id,
+    adminId,
   })
 
   if (!modResult.pass) {
     return NextResponse.json({
       error: 'Message flagged',
-      message: 'Your message may contain discriminatory or harmful language. Please revise before sending.',
+      moderation: true,
+      message: 'Your message was flagged for potentially discriminatory content. Please revise.',
+      severity: modResult.severity,
     }, { status: 422 })
   }
 
@@ -64,13 +93,106 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       project_id: id,
       user_id: user.id,
       role: 'user',
-      content,
+      content: content || '',
       context: 'group_chat',
+      messageType: messageType || (attachments.length > 0 ? 'file' : 'text'),
+      attachments,
     },
     include: { user: { select: { id: true, full_name: true, avatar_url: true } } },
   })
 
-  // Socket.io broadcast handled by the realtime server
-  // The client listens to socket events directly
+  // --- Feature 3: @mention detection ---
+  const agentName = (process.env.AGENT_NAME || 'researchbot').toLowerCase()
+  const mentionRegex = new RegExp(`@${agentName}\\s*(.*)`, 'i')
+  const mentionMatch = content.match(mentionRegex)
+
+  if (mentionMatch) {
+    const command = mentionMatch[1].trim()
+
+    // Fetch last 10 messages as agent context
+    const contextMsgs = await prisma.chatMessage.findMany({
+      where: { project_id: id, context: 'group_chat' },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+    })
+    const agentMessages = contextMsgs
+      .reverse()
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+    let agentReply = ''
+
+    try {
+      if (/^search\s+(.+)/i.test(command)) {
+        // Route to arXiv search
+        const query = command.replace(/^search\s+/i, '')
+        const results = await searchArxiv(query, 3)
+        const formatted = results
+          .map((r, i) => `[${i + 1}] **${r.title}**\n${r.authors.slice(0, 2).join(', ')} (${r.published.slice(0, 4)})\n${r.abstract.slice(0, 200)}...\n${r.url}`)
+          .join('\n\n')
+        agentReply = `Here are arXiv results for "${query}":\n\n${formatted}`
+      } else if (/^latex\s+(.+)/i.test(command)) {
+        const latexAgent = getAgent('latex')
+        if (latexAgent) {
+          const out = await latexAgent.run({
+            messages: [...agentMessages, { role: 'user', content: command }],
+            context: { step: 'results' },
+            language: user.language,
+          })
+          agentReply = out.reply
+        }
+      } else if (/^summarize/i.test(command)) {
+        const mergeAgent = getAgent('merge')
+        if (mergeAgent) {
+          const recentContent = agentMessages
+            .slice(-10)
+            .map((m) => m.content)
+            .join('\n')
+          const out = await mergeAgent.run({
+            messages: [{ role: 'user', content: `Summarize these messages:\n${recentContent}` }],
+            context: { sections: [], topic: 'group chat' },
+            language: user.language,
+          })
+          agentReply = out.reply
+        }
+      } else if (/^explain\s+(.+)/i.test(command)) {
+        const resAgent = getAgent('research')
+        if (resAgent) {
+          const out = await resAgent.run({
+            messages: [...agentMessages, { role: 'user', content: command }],
+            context: {},
+            language: user.language,
+          })
+          agentReply = out.reply
+        }
+      } else {
+        // Default: research-search agent with full context
+        const out = await researchSearchAgent.run({
+          messages: [...agentMessages, { role: 'user', content: command || content }],
+          context: { projectId: id, mode: 'chat' },
+          language: user.language,
+        })
+        agentReply = out.reply
+      }
+    } catch (err) {
+      console.error('[chat:mention] agent error:', err)
+      agentReply = 'Sorry, I encountered an error. Please try again.'
+    }
+
+    if (agentReply) {
+      await prisma.chatMessage.create({
+        data: {
+          project_id: id,
+          user_id: null,
+          role: 'assistant',
+          content: agentReply,
+          context: 'group_chat',
+          messageType: 'agent_response',
+        },
+      })
+    }
+
+    return NextResponse.json({ ...message, agentReply }, { status: 201 })
+  }
+
   return NextResponse.json(message, { status: 201 })
 }

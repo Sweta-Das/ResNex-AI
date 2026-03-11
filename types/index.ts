@@ -66,12 +66,38 @@ export interface ContributorshipLog {
 export interface ChatMessage {
   id: string
   project_id: string
-  user_id?: string
+  user_id?: string | null
   role: 'user' | 'assistant'
   content: string
   context: ChatContext
+  messageType?: 'text' | 'research_share' | 'agent_response'
   created_at: string
   user?: User
+}
+
+export interface ModerationAlert {
+  id: string
+  projectId: string
+  reportedUserId: string
+  adminId: string
+  messages: { role: string; content: string; userName: string }[]
+  flaggedMsg: string
+  reason: string
+  severity: 'low' | 'medium' | 'high'
+  reviewed: boolean
+  createdAt: string
+  reporter?: { id: string; full_name: string; avatar_url?: string }
+}
+
+export interface DocumentChunk {
+  id: string
+  projectId: string
+  memberId: string
+  fileName: string
+  fileUrl: string
+  chunkIndex: number
+  content: string
+  createdAt: string
 }
 
 export interface ModerationLog {

@@ -40,3 +40,24 @@ next-env.d.ts
 .vercel
 .turbo
 coverage/
+
+# ── Sensitive / local files ───────────────────────────────────
+*.pem
+*.key
+*.p12
+.env.prev
+
+# ── Socket server ─────────────────────────────────────────────
+socket-server/node_modules/
+socket-server/.env
+
+# ── Docs / planning files ─────────────────────────────────────
+CLAUDE.md
+CODEBASE_DOCS.md
+DECISIONS*.md
+"DECISIONS (1).md"
+"DECISIONS (2).md"
+SDLC.md
+SDLC.pdf
+*.docx
+env.txt

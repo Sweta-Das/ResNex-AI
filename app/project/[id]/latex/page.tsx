@@ -1,286 +1,357 @@
 'use client'
-// app/project/[id]/latex/page.tsx
+// app/project/[id]/latex/page.tsx — LaTeX pipeline: COLLECT→MAP→FILL→PREVIEW→CONFIRM
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { PageHeader } from '../../../../components/layout/PageHeader'
 import { Button, Badge, Spinner, ToastProvider, useToast } from '../../../../components/ui'
+import { TemplateSelector } from '../../../../components/latex/TemplateSelector'
+import { SectionSidebar } from '../../../../components/latex/SectionSidebar'
+import { WarningsBar } from '../../../../components/latex/WarningsBar'
+import { PreviewPanel, LatexDocumentPreview } from '../../../../components/latex/PreviewPanel'
+import { fillTemplate, getTemplate } from '../../../../lib/latex-templates'
+import type { ColorCode } from '../../../../components/latex/SectionSidebar'
 
-const SECTION_ORDER = [
-  { key: 'template', label: 'Template Info', icon: '📋' },
-  { key: 'title_authors', label: 'Title & Authors', icon: '✍️' },
-  { key: 'abstract', label: 'Abstract', icon: '📝' },
-  { key: 'introduction', label: 'Introduction', icon: '🚀' },
-  { key: 'methodology', label: 'Methodology', icon: '🔬' },
-  { key: 'results', label: 'Results', icon: '📊' },
-  { key: 'discussion', label: 'Discussion', icon: '💬' },
-  { key: 'conclusion', label: 'Conclusion', icon: '🏁' },
-  { key: 'references', label: 'References', icon: '📚' },
-  { key: 'disclosures', label: 'Disclosures', icon: '⚖️' },
-]
-
-function SimpleLatexPreview({ latex }: { latex: string }) {
-  // Basic syntax highlighting for LaTeX
-  const highlighted = latex
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/(\\[a-zA-Z]+)/g, '<span style="color:#4f8ef7">$1</span>')
-    .replace(/(\{[^}]*\})/g, '<span style="color:#3ecf8e">$1</span>')
-    .replace(/(%.+)/g, '<span style="color:#7a839a;font-style:italic">$1</span>')
-
-  return (
-    <div className="h-full overflow-y-auto bg-white rounded-lg p-6">
-      <div className="text-gray-800 text-xs leading-relaxed font-mono">
-        {/* Minimal rendered preview for common elements */}
-        {latex.split('\n').map((line, i) => {
-          if (line.startsWith('\\section{')) {
-            const title = line.match(/\\section\{(.+?)\}/)?.[1] || ''
-            return <h2 key={i} className="text-gray-900 text-base font-bold mt-4 mb-2 border-b border-gray-200 pb-1">{title}</h2>
-          }
-          if (line.startsWith('\\subsection{')) {
-            const title = line.match(/\\subsection\{(.+?)\}/)?.[1] || ''
-            return <h3 key={i} className="text-gray-800 text-sm font-semibold mt-3 mb-1">{title}</h3>
-          }
-          if (line.startsWith('\\title{')) {
-            const title = line.match(/\\title\{(.+?)\}/)?.[1] || ''
-            return <h1 key={i} className="text-gray-900 text-xl font-bold text-center mt-2 mb-1">{title}</h1>
-          }
-          if (line.startsWith('\\author{')) {
-            const author = line.match(/\\author\{(.+?)\}/)?.[1] || ''
-            return <p key={i} className="text-gray-600 text-sm text-center mb-3">{author}</p>
-          }
-          if (line === '\\begin{abstract}') return <p key={i} className="text-gray-500 text-xs italic font-bold mt-3">Abstract</p>
-          if (line === '\\end{abstract}') return null
-          if (line.startsWith('%') || line.startsWith('\\')) return null
-          if (!line.trim()) return <br key={i} />
-          return <p key={i} className="text-gray-700 text-xs mb-1">{line}</p>
-        })}
-      </div>
-    </div>
-  )
+interface FilledSection {
+  key: string
+  label: string
+  content: string
+  color: ColorCode
+  mode: 'data' | 'generated'
+  sourceTypes: string[]
+  wordCount: number
 }
+
+interface PipelineResult {
+  sections: FilledSection[]
+  warnings: string[]
+  fullLatex: string
+}
+
+const TABS = (id: string) => [
+  { label: 'Overview', href: `/project/${id}` },
+  { label: 'Chat', href: `/project/${id}/chat` },
+  { label: 'Discover', href: `/project/${id}/discover` },
+  { label: 'Library', href: `/project/${id}/library` },
+  { label: 'Compare', href: `/project/${id}/compare` },
+  { label: 'Agents', href: `/project/${id}/agents` },
+  { label: 'Review', href: `/project/${id}/review` },
+  { label: 'Output', href: `/project/${id}/output` },
+  { label: 'LaTeX', href: `/project/${id}/latex` },
+]
 
 export default function LaTeXPage() {
   const { id } = useParams<{ id: string }>()
-  const [sections, setSections] = useState<Record<string, string>>({})
-  const [confirmed, setConfirmed] = useState<Set<string>>(new Set())
-  const [activeSection, setActiveSection] = useState('abstract')
-  const [format, setFormat] = useState('Generic')
-  const [generating, setGenerating] = useState(false)
-  const [regenerating, setRegenerating] = useState(false)
-  const [fixing, setFixing] = useState(false)
-  const [fixInstruction, setFixInstruction] = useState('')
   const { success, error } = useToast()
 
+  const [template, setTemplate] = useState('generic')
+  const [pipelineResult, setPipelineResult] = useState<PipelineResult | null>(null)
+  const [sectionContents, setSectionContents] = useState<Record<string, string>>({})
+  const [activeSection, setActiveSection] = useState('')
+  const [running, setRunning] = useState(false)
+  const [regenerating, setRegenerating] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [compiling, setCompiling] = useState(false)
+
+  // Load existing latex doc on mount
   useEffect(() => {
     fetch(`/api/projects/${id}/latex`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
         if (data) {
-          setSections(data.sections || {})
-          setConfirmed(new Set(data.confirmed_sections || []))
-          setFormat(data.format || 'Generic')
+          setTemplate(data.template || 'generic')
+          setConfirmed(data.confirmed || false)
+          if (data.sections && Object.keys(data.sections).length > 0) {
+            setSectionContents(data.sections)
+            const sectionSources = data.sectionSources || {}
+            const sections: FilledSection[] = Object.entries(data.sections as Record<string, string>).map(([key, content]) => ({
+              key,
+              label: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+              content,
+              color: (sectionSources[key] || 'blue') as ColorCode,
+              mode: 'data' as const,
+              sourceTypes: [],
+              wordCount: content.split(/\s+/).filter(Boolean).length,
+            }))
+            setPipelineResult({ sections, warnings: [], fullLatex: data.preview || '' })
+            if (sections[0]) setActiveSection(sections[0].key)
+          }
         }
       })
+      .catch(console.error)
   }, [id])
 
-  async function generateAll() {
-    setGenerating(true)
+  async function runPipeline() {
+    setRunning(true)
     try {
-      const res = await fetch('/api/ai/latex/generate', {
+      const res = await fetch(`/api/projects/${id}/latex/pipeline-run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_id: id, format }),
+        body: JSON.stringify({ template }),
       })
-      const data = await res.json()
-      setSections(data.sections || {})
-      success('LaTeX paper generated!')
-    } catch { error('Generation failed') }
-    finally { setGenerating(false) }
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error || 'Pipeline failed')
+      }
+      const result: PipelineResult = await res.json()
+      setPipelineResult(result)
+      const contents: Record<string, string> = {}
+      result.sections.forEach((s) => { contents[s.key] = s.content })
+      setSectionContents(contents)
+      if (result.sections[0]) setActiveSection(result.sections[0].key)
+      setConfirmed(false)
+      success('Pipeline complete! Review and confirm each section.')
+    } catch (err: any) {
+      error(err.message || 'Pipeline failed')
+    } finally {
+      setRunning(false)
+    }
   }
 
-  async function regenerateSection() {
-    setRegenerating(true)
+  async function regenerateSection(sectionKey: string) {
+    setRegenerating(sectionKey)
     try {
-      const res = await fetch('/api/ai/latex/regenerate-section', {
+      const res = await fetch(`/api/projects/${id}/latex/regenerate-section`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_id: id, section_key: activeSection }),
+        body: JSON.stringify({ sectionKey, template }),
       })
       const data = await res.json()
-      setSections(prev => ({ ...prev, [activeSection]: data.content }))
-      success('Section regenerated!')
-    } catch { error('Regeneration failed') }
-    finally { setRegenerating(false) }
+      if (!res.ok) throw new Error(data.error)
+      setSectionContents((prev) => ({ ...prev, [sectionKey]: data.content }))
+      setPipelineResult((prev) => prev ? {
+        ...prev,
+        sections: prev.sections.map((s) =>
+          s.key === sectionKey ? { ...s, content: data.content, wordCount: data.wordCount, mode: data.mode } : s
+        ),
+      } : prev)
+      success(`${sectionKey.replace(/_/g, ' ')} regenerated!`)
+    } catch (err: any) {
+      error(err.message || 'Regeneration failed')
+    } finally {
+      setRegenerating(null)
+    }
   }
 
-  async function fixSection() {
-    if (!fixInstruction.trim()) return
-    setFixing(true)
+  async function confirmAndSave() {
+    setSaving(true)
     try {
-      const res = await fetch('/api/ai/latex/fix', {
+      const res = await fetch(`/api/projects/${id}/latex`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template, sections: sectionContents, confirmed: true }),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const saved = await res.json()
+      setPipelineResult((prev) => prev ? { ...prev, fullLatex: saved.preview || prev.fullLatex } : prev)
+      setConfirmed(true)
+      success('LaTeX saved successfully!')
+    } catch (err: any) {
+      error(err.message || 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function compilePdf() {
+    setCompiling(true)
+    try {
+      const res = await fetch(`/api/projects/${id}/latex/compile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          latex_string: sections[activeSection] || '',
-          instruction: fixInstruction,
-        }),
+        body: JSON.stringify({ latex: currentFullLatex }),
       })
-      const data = await res.json()
-      setSections(prev => ({ ...prev, [activeSection]: data.fixed }))
-      setFixInstruction('')
-      success('Section fixed!')
-    } catch { error('Fix failed') }
-    finally { setFixing(false) }
-  }
-
-  async function saveSections() {
-    await fetch(`/api/projects/${id}/latex`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sections,
-        confirmed_sections: Array.from(confirmed),
-      }),
-    })
-    success('Saved!')
+      if (!res.ok) throw new Error('Compilation failed')
+      const blob = await res.blob()
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+      setPdfUrl(URL.createObjectURL(blob))
+      setShowPreview(true)
+      success('PDF compiled successfully!')
+    } catch (err: any) {
+      error(err.message || 'Compilation failed')
+    } finally {
+      setCompiling(false)
+    }
   }
 
   function exportTex() {
-    const full = SECTION_ORDER
-      .map(s => sections[s.key] || '')
-      .filter(Boolean)
-      .join('\n\n')
+    const full = currentFullLatex
     const blob = new Blob([full], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = 'paper.tex'; a.click()
+    const a = document.createElement('a')
+    a.href = url; a.download = 'paper.tex'; a.click()
     URL.revokeObjectURL(url)
   }
 
-  const currentLatex = sections[activeSection] || ''
-  const completedCount = SECTION_ORDER.filter(s => sections[s.key]).length
+  const activeSection_ = pipelineResult?.sections.find((s) => s.key === activeSection)
+  const currentFullLatex = fillTemplate(getTemplate(template as 'generic' | 'neurips'), sectionContents as any)
+  const sidebarSections = pipelineResult?.sections.map((s) => ({
+    key: s.key,
+    label: s.label,
+    color: s.color,
+    wordCount: sectionContents[s.key]?.split(/\s+/).filter(Boolean).length || s.wordCount,
+    mode: s.mode,
+  })) || []
 
-  const tabs = [
-    { label: 'Overview', href: `/project/${id}` },
-    { label: 'Chat', href: `/project/${id}/chat` },
-    { label: 'Workspace', href: `/project/${id}/workspace` },
-    { label: 'Review', href: `/project/${id}/review` },
-    { label: 'Output', href: `/project/${id}/output` },
-    { label: 'LaTeX', href: `/project/${id}/latex` },
-  ]
+  const tabs = TABS(id)
 
   return (
     <>
       <ToastProvider />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <PageHeader
-          title="LaTeX Paper Editor"
-          subtitle={`Format: ${format} · ${completedCount}/10 sections`}
+          title="LaTeX Pipeline"
+          subtitle={
+            pipelineResult
+              ? `${pipelineResult.sections.length} sections · ${confirmed ? '✓ Confirmed' : 'Review & Confirm'}`
+              : 'Run the pipeline to generate your paper'
+          }
           tabs={tabs}
-          activeTab={tabs[5].href}
+          activeTab={tabs[9].href}
           actions={
-            <div className="flex gap-2">
-              <Button size="sm" variant="secondary" onClick={saveSections}>Save</Button>
-              <Button size="sm" variant="secondary" onClick={exportTex}>Export .tex</Button>
-              <Button size="sm" onClick={generateAll} loading={generating}>
-                {completedCount > 0 ? 'Regenerate All' : 'Generate Paper'}
+            <div className="flex items-center gap-2">
+              <TemplateSelector value={template} onChange={setTemplate} disabled={running} />
+              {pipelineResult && (
+                <>
+                  <Button size="sm" variant="secondary" onClick={() => setShowPreview(!showPreview)}>
+                    {showPreview ? 'Editor' : 'Preview'}
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={compilePdf} loading={compiling}>
+                    Compile PDF
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={exportTex}>Export .tex</Button>
+                  {!confirmed ? (
+                    <Button size="sm" variant="success" onClick={confirmAndSave} loading={saving}>
+                      Confirm & Save
+                    </Button>
+                  ) : (
+                    <Badge color="green">✓ Saved</Badge>
+                  )}
+                </>
+              )}
+              <Button size="sm" onClick={runPipeline} loading={running}>
+                {pipelineResult ? 'Re-run Pipeline' : 'Run Pipeline'}
               </Button>
             </div>
           }
         />
 
-        <div className="flex-1 flex overflow-hidden">
-          {/* Section navigator */}
-          <div className="w-48 flex-shrink-0 border-r border-[#1a1f2e] bg-[#0d1018] py-3 flex flex-col gap-0.5 px-2">
-            {SECTION_ORDER.map(s => (
-              <button
-                key={s.key}
-                onClick={() => setActiveSection(s.key)}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all text-left ${
-                  activeSection === s.key
-                    ? 'bg-[#4f8ef7]/10 text-[#4f8ef7] border border-[#4f8ef7]/20'
-                    : 'text-[#7a839a] hover:text-[#e8eaf0] hover:bg-[#1a1f2e]'
-                }`}
-              >
-                <span className="text-sm">{s.icon}</span>
-                <span className="flex-1 truncate font-medium">{s.label}</span>
-                {sections[s.key] && (
-                  confirmed.has(s.key) ? (
-                    <span className="text-[#3ecf8e] text-[10px]">✓</span>
-                  ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#4f8ef7]" />
-                  )
-                )}
-              </button>
-            ))}
-          </div>
+        {pipelineResult && (
+          <WarningsBar warnings={pipelineResult.warnings} projectId={id} />
+        )}
 
-          {/* Editor */}
-          <div className="flex-1 flex flex-col overflow-hidden border-r border-[#1a1f2e]">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-[#252a38] bg-[#0d1018]">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[#e8eaf0]">
-                  {SECTION_ORDER.find(s => s.key === activeSection)?.label}
-                </span>
-                {sections[activeSection] && !confirmed.has(activeSection) && (
-                  <button
-                    onClick={() => setConfirmed(prev => new Set([...prev, activeSection]))}
-                    className="text-xs text-[#3ecf8e] hover:underline"
-                  >
-                    Confirm ✓
-                  </button>
-                )}
-                {confirmed.has(activeSection) && <Badge color="green">Confirmed</Badge>}
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={regenerateSection} loading={regenerating}>
-                  Regenerate
-                </Button>
-              </div>
+        {running ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-6">
+            <Spinner size={32} />
+            <p className="text-sm font-medium text-[#e8eaf0]">Running LaTeX pipeline…</p>
+            <div className="flex flex-col items-center gap-1 text-xs text-[#3d4558]">
+              <p>COLLECT → gathering sources</p>
+              <p>MAP → routing to sections</p>
+              <p>FILL → LLM generating content</p>
+              <p>PREVIEW → annotating sources</p>
             </div>
-
-            {/* Simple textarea editor (CodeMirror can be added with full npm install) */}
-            <textarea
-              value={currentLatex}
-              onChange={e => setSections(prev => ({ ...prev, [activeSection]: e.target.value }))}
-              className="flex-1 bg-[#0a0c10] text-[#c8cad0] font-mono text-xs p-4 resize-none
-                focus:outline-none border-0 leading-relaxed"
-              placeholder={`% LaTeX content for ${SECTION_ORDER.find(s => s.key === activeSection)?.label} will appear here\n% Click "Generate Paper" to auto-generate all sections`}
-              spellCheck={false}
+          </div>
+        ) : !pipelineResult ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
+            <div className="text-center max-w-md">
+              <div className="w-16 h-16 rounded-2xl bg-[#7c6af5]/10 border border-[#7c6af5]/20 flex items-center justify-center mx-auto mb-4">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7c6af5" strokeWidth="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <h2 className="text-lg font-bold text-[#e8eaf0] mb-2">LaTeX Pipeline</h2>
+              <p className="text-sm text-[#7a839a] mb-4">
+                Collects member sections, paper summaries, and @agent outputs — then fills a LaTeX template with AI.
+              </p>
+              <div className="grid grid-cols-2 gap-2 mb-6 text-left">
+                {[
+                  { icon: '📥', label: 'COLLECT', desc: 'Gathers all sources' },
+                  { icon: '🗺️', label: 'MAP', desc: 'Routes to sections' },
+                  { icon: '✍️', label: 'FILL', desc: 'AI writes content' },
+                  { icon: '👁️', label: 'PREVIEW', desc: 'Color-coded review' },
+                ].map((step) => (
+                  <div key={step.label} className="bg-[#0d1018] border border-[#1a1f2e] rounded-xl p-3">
+                    <p className="text-base mb-1">{step.icon}</p>
+                    <p className="text-xs font-bold text-[#e8eaf0]">{step.label}</p>
+                    <p className="text-[10px] text-[#3d4558]">{step.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <Button onClick={runPipeline} loading={running}>Run LaTeX Pipeline</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex overflow-hidden">
+            <SectionSidebar
+              sections={sidebarSections}
+              activeSection={activeSection}
+              regenerating={regenerating}
+              onSelect={setActiveSection}
+              onRegenerate={regenerateSection}
             />
 
-            {/* AI Fix bar */}
-            <div className="border-t border-[#252a38] px-4 py-3 bg-[#0d1018] flex gap-2">
-              <input
-                value={fixInstruction}
-                onChange={e => setFixInstruction(e.target.value)}
-                placeholder="Describe what to fix in this section..."
-                className="flex-1 bg-[#0a0c10] border border-[#252a38] rounded-lg px-3 py-1.5 text-xs
-                  text-[#e8eaf0] placeholder:text-[#3d4558] focus:outline-none focus:border-[#4f8ef7]"
-              />
-              <Button size="sm" onClick={fixSection} loading={fixing} disabled={!fixInstruction.trim()}>
-                AI Fix
-              </Button>
-            </div>
-          </div>
-
-          {/* Preview */}
-          <div className="w-80 flex-shrink-0 flex flex-col overflow-hidden bg-[#f8f9fa]">
-            <div className="px-4 py-2 border-b border-gray-200 bg-white">
-              <p className="text-xs font-medium text-gray-600">Preview</p>
-            </div>
-            <div className="flex-1 overflow-hidden p-3">
-              {currentLatex ? (
-                <SimpleLatexPreview latex={currentLatex} />
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-xs text-gray-400 text-center">
-                    Generate the paper to see a preview here
-                  </p>
+            {showPreview ? (
+              <div className="flex-1 overflow-hidden p-4 bg-[#f8f9fa] flex gap-4">
+                <div className="flex-1 min-w-0">
+                  <LatexDocumentPreview latex={currentFullLatex} />
                 </div>
-              )}
-            </div>
+                <div className="w-[42%] min-w-[320px] bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {pdfUrl ? (
+                    <iframe
+                      src={pdfUrl}
+                      title="Compiled PDF Preview"
+                      className="w-full h-full min-h-[600px]"
+                    />
+                  ) : (
+                    <div className="h-full min-h-[600px] flex items-center justify-center text-center p-6 text-sm text-gray-500">
+                      Click "Compile PDF" to generate a real LaTeX PDF preview.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-[#252a38] bg-[#0d1018]">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-[#e8eaf0]">
+                      {activeSection_?.label || activeSection}
+                    </span>
+                    {activeSection_ && (
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        activeSection_.mode === 'generated'
+                          ? 'bg-[#f43f5e]/15 text-[#f43f5e] border border-[#f43f5e]/20'
+                          : 'bg-[#3ecf8e]/15 text-[#3ecf8e] border border-[#3ecf8e]/20'
+                      }`}>
+                        {activeSection_.mode === 'generated' ? 'AI generated' : `from ${activeSection_.sourceTypes[0] || 'data'}`}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => regenerateSection(activeSection)}
+                    loading={regenerating === activeSection}
+                    disabled={!!regenerating}
+                  >
+                    ↺ Regenerate
+                  </Button>
+                </div>
+
+                <PreviewPanel
+                  value={sectionContents[activeSection] || ''}
+                  onChange={(val) => setSectionContents((prev) => ({ ...prev, [activeSection]: val }))}
+                  sectionColor={activeSection_?.color}
+                />
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </>
   )

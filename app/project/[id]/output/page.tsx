@@ -118,7 +118,10 @@ export default function OutputPage() {
   const tabs = [
     { label: 'Overview', href: `/project/${id}` },
     { label: 'Chat', href: `/project/${id}/chat` },
-    { label: 'Workspace', href: `/project/${id}/workspace` },
+    { label: 'Discover', href: `/project/${id}/discover` },
+    { label: 'Library', href: `/project/${id}/library` },
+    { label: 'Compare', href: `/project/${id}/compare` },
+    { label: 'Agents', href: `/project/${id}/agents` },
     { label: 'Review', href: `/project/${id}/review` },
     { label: 'Output', href: `/project/${id}/output` },
     { label: 'LaTeX', href: `/project/${id}/latex` },
@@ -140,7 +143,7 @@ export default function OutputPage() {
           title="Final Output"
           subtitle="Merged document, bias audit, and exports"
           tabs={tabs}
-          activeTab={tabs[4].href}
+          activeTab={tabs[8].href}
           actions={
             <div className="flex gap-2">
               <Button size="sm" variant="secondary" onClick={exportPdf}>Export PDF</Button>
