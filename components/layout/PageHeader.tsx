@@ -10,11 +10,9 @@ interface Tab { label: string; href: string; icon?: string }
 // Canonical tab order — import this wherever you need the project tab list
 export const PROJECT_TABS = (id: string) => [
   { id: 'overview',  label: 'Overview',  href: `/project/${id}`            },
-  { id: 'reflect',   label: 'Reflect',   href: `/project/${id}/reflect`    },
   { id: 'chat',      label: 'Chat',      href: `/project/${id}/chat`       },
   { id: 'discover',  label: 'Discover',  href: `/project/${id}/discover`   },
   { id: 'library',   label: 'Library',   href: `/project/${id}/library`    },
-  { id: 'compare',   label: 'Compare',   href: `/project/${id}/compare`    },
   { id: 'agents',    label: 'Agents',    href: `/project/${id}/agents`     },
   { id: 'latex',     label: 'LaTeX',     href: `/project/${id}/latex`      },
 ] as const

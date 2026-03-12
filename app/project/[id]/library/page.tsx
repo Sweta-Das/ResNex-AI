@@ -1,6 +1,7 @@
 'use client'
 // app/project/[id]/library/page.tsx
 // Paper library: view imported papers, upload PDFs, read AI summaries
+// Compare mode: check 2+ ready papers → auto-switches right panel to comparison matrix
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
@@ -12,10 +13,11 @@ const TABS = (id: string) => [
   { label: 'Chat', href: `/project/${id}/chat` },
   { label: 'Discover', href: `/project/${id}/discover` },
   { label: 'Library', href: `/project/${id}/library` },
-  { label: 'Compare', href: `/project/${id}/compare` },
   { label: 'Agents', href: `/project/${id}/agents` },
   { label: 'LaTeX', href: `/project/${id}/latex` },
 ]
+
+const DIMENSIONS = ['problem_addressed', 'methodology', 'datasets', 'findings', 'limitations', 'novelty']
 
 const statusColors: Record<string, string> = {
   ready: 'bg-[#3ecf8e]/15 text-[#3ecf8e] border-[#3ecf8e]/20',
@@ -60,6 +62,9 @@ export default function LibraryPage() {
   const [uploading, setUploading] = useState(false)
   const [retryingAll, setRetryingAll] = useState(false)
   const [reanalyzing, setReanalyzing] = useState(false)
+  const [checkedIds, setCheckedIds] = useState<string[]>([])
+  const [comparing, setComparing] = useState(false)
+  const [compareResult, setCompareResult] = useState<any>(null)
 
   const refresh = useCallback(() => {
     fetch(`/api/projects/${id}/papers`)
@@ -119,6 +124,30 @@ export default function LibraryPage() {
       error('Re-analyze failed. Please try again.')
     } finally {
       setReanalyzing(false)
+    }
+  }
+
+  function toggleCheck(e: React.MouseEvent, paperId: string) {
+    e.stopPropagation()
+    setCheckedIds(prev => prev.includes(paperId) ? prev.filter(x => x !== paperId) : [...prev, paperId])
+    setCompareResult(null)
+  }
+
+  async function handleCompare() {
+    setComparing(true)
+    setCompareResult(null)
+    try {
+      const res = await fetch(`/api/projects/${id}/papers/compare`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paper_ids: checkedIds }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setCompareResult(await res.json())
+    } catch {
+      error('Comparison failed. Please try again.')
+    } finally {
+      setComparing(false)
     }
   }
 
@@ -190,6 +219,16 @@ export default function LibraryPage() {
                   {reanalyzing ? 'Re-analyzing...' : 'Re-analyze All Summaries'}
                 </button>
               )}
+              {checkedIds.length >= 2 && (
+                <button
+                  onClick={handleCompare}
+                  disabled={comparing}
+                  className="mt-2 w-full flex items-center justify-center gap-2 bg-[#4f8ef7]/15 hover:bg-[#4f8ef7]/25 text-[#4f8ef7] border border-[#4f8ef7]/20 px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                >
+                  {comparing ? <Spinner size={10} color="#4f8ef7" /> : null}
+                  {comparing ? 'Comparing...' : `Compare (${checkedIds.length})`}
+                </button>
+              )}
             </div>
 
             <div
@@ -207,23 +246,49 @@ export default function LibraryPage() {
                   <p className="text-[10px] text-[#3d4558] mt-1">Upload a PDF or use the Discover tab to import.</p>
                 </div>
               ) : (
-                papers.map((paper) => (
-                  <button
-                    key={paper.id}
-                    role="listitem"
-                    aria-selected={selected?.id === paper.id}
-                    onClick={() => setSelected(paper)}
-                    className={`w-full text-left px-4 py-3 border-b border-[#1a1f2e] hover:bg-[#1a1f2e] transition-colors ${selected?.id === paper.id ? 'bg-[#4f8ef7]/10 border-l-2 border-l-[#4f8ef7]' : ''}`}
-                  >
-                    <p className="font-medium text-sm text-[#e8eaf0] truncate leading-snug mb-1">
-                      {paper.title}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={paper.status} />
-                      {paper.year && <span className="text-[10px] text-[#3d4558]">{paper.year}</span>}
+                papers.map((paper) => {
+                  const isChecked = checkedIds.includes(paper.id)
+                  const isSelected = selected?.id === paper.id
+                  const isReady = paper.status === 'ready'
+                  return (
+                    <div
+                      key={paper.id}
+                      role="listitem"
+                      className={`relative border-b border-[#1a1f2e] transition-colors ${isChecked || isSelected ? 'border-l-2 border-l-[#4f8ef7]' : ''}`}
+                    >
+                      {isReady && (
+                        <div
+                          onClick={(e) => toggleCheck(e, paper.id)}
+                          role="checkbox"
+                          aria-checked={isChecked}
+                          aria-label={`Select ${paper.title} for comparison`}
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === ' ' && toggleCheck(e as any, paper.id)}
+                          className={`absolute top-3 left-2 z-10 w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${isChecked ? 'bg-[#4f8ef7] border-[#4f8ef7]' : 'border-[#3d4558] bg-transparent hover:border-[#4f8ef7]'}`}
+                        >
+                          {isChecked && (
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                              <path d="M20 6L9 17l-5-5"/>
+                            </svg>
+                          )}
+                        </div>
+                      )}
+                      <button
+                        aria-selected={isSelected}
+                        onClick={() => setSelected(paper)}
+                        className={`w-full text-left hover:bg-[#1a1f2e] transition-colors ${isChecked || isSelected ? 'bg-[#4f8ef7]/10' : ''} ${isReady ? 'pl-8 pr-4 py-3' : 'px-4 py-3'}`}
+                      >
+                        <p className="font-medium text-sm text-[#e8eaf0] truncate leading-snug mb-1">
+                          {paper.title}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={paper.status} />
+                          {paper.year && <span className="text-[10px] text-[#3d4558]">{paper.year}</span>}
+                        </div>
+                      </button>
                     </div>
-                  </button>
-                ))
+                  )
+                })
               )}
             </div>
           </div>
@@ -234,7 +299,81 @@ export default function LibraryPage() {
             aria-label="Paper details"
             aria-live="polite"
           >
-            {!selected ? (
+            {checkedIds.length >= 2 ? (
+              <div className="max-w-5xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#e8eaf0]">Comparing {checkedIds.length} papers</h2>
+                  <button
+                    onClick={() => { setCheckedIds([]); setCompareResult(null) }}
+                    className="text-xs text-[#7a839a] hover:text-[#e8eaf0] border border-[#252a38] hover:border-[#2e3548] px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+                {comparing ? (
+                  <div className="flex flex-col items-center justify-center h-64 gap-4">
+                    <Spinner size={28} />
+                    <p className="text-sm text-[#7a839a]">Generating comparison matrix...</p>
+                  </div>
+                ) : !compareResult ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center max-w-xs">
+                      <div className="w-14 h-14 rounded-2xl bg-[#1a1f2e] border border-[#252a38] flex items-center justify-center mx-auto mb-4">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3d4558" strokeWidth="1.5">
+                          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                      </div>
+                      <p className="text-sm font-medium text-[#7a839a] mb-1">{checkedIds.length} papers selected</p>
+                      <p className="text-xs text-[#3d4558]">Click "Compare ({checkedIds.length})" in the left panel to generate a structured comparison matrix.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {compareResult.narrative_summary && (
+                      <div className="bg-[#0d1018] border border-[#1a1f2e] rounded-xl p-5 mb-6">
+                        <h3 className="text-[10px] font-bold text-[#3d4558] uppercase tracking-wider mb-3">Narrative Summary</h3>
+                        <p className="text-sm text-[#c8cad0] leading-relaxed whitespace-pre-wrap">{compareResult.narrative_summary}</p>
+                      </div>
+                    )}
+                    {compareResult.comparison_matrix?.papers?.length > 0 && (
+                      <div className="bg-[#0d1018] border border-[#1a1f2e] rounded-xl overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-[#1a1f2e]">
+                                <th className="text-left p-4 text-[10px] font-bold text-[#3d4558] uppercase tracking-wider w-32">
+                                  Dimension
+                                </th>
+                                {compareResult.comparison_matrix.papers.map((p: any, i: number) => (
+                                  <th key={i} className="text-left p-4 text-[10px] font-bold text-[#7a839a] uppercase tracking-wider">
+                                    {p.title?.slice(0, 35)}{p.title?.length > 35 ? '...' : ''}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(compareResult.comparison_matrix.dimensions || DIMENSIONS).map((dim: string) => (
+                                <tr key={dim} className="border-b border-[#1a1f2e] last:border-0">
+                                  <td className="p-4 font-semibold text-xs text-[#7a839a] capitalize whitespace-nowrap align-top">
+                                    {dim.replace(/_/g, ' ')}
+                                  </td>
+                                  {compareResult.comparison_matrix.papers.map((p: any, i: number) => (
+                                    <td key={i} className="p-4 text-xs text-[#c8cad0] leading-relaxed align-top">
+                                      {p[dim] || '—'}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : !selected ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="w-12 h-12 rounded-xl bg-[#1a1f2e] border border-[#252a38] flex items-center justify-center mx-auto mb-3">

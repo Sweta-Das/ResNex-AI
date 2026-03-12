@@ -15,11 +15,9 @@ import { NormalizingPanel } from '../../../components/belonging/NormalizingPanel
 import { GrowthTracker } from '../../../components/belonging/GrowthTracker'
 const TABS = (id: string) => [
   { label: 'Overview', href: `/project/${id}`, icon: '⬡' },
-  { label: 'Reflect', href: `/project/${id}/reflect`, icon: '🔮' },
   { label: 'Chat', href: `/project/${id}/chat`, icon: '💬' },
   { label: 'Discover', href: `/project/${id}/discover`, icon: '🔍' },
   { label: 'Library', href: `/project/${id}/library`, icon: '📚' },
-  { label: 'Compare', href: `/project/${id}/compare`, icon: '⇄' },
   { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
   { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
 ]
@@ -546,6 +544,8 @@ export default function ProjectDashboard() {
                 />
               )}
 
+              <GroupChat projectId={id} />
+
               {/* Contributorship log */}
               <ContributorshipTimeline logs={logs} />
               </>
@@ -554,13 +554,11 @@ export default function ProjectDashboard() {
 
             {/* Right column — chat */}
             <div className="flex flex-col gap-6">
-              <GroupChat projectId={id} />
-
               <ContributionHeatmap projectId={id} />
 
-              <NormalizingPanel projectId={id} />
-
               <GrowthTracker projectId={id} />
+
+              <NormalizingPanel projectId={id} />
 
               {/* Quick nav */}
               <Card>

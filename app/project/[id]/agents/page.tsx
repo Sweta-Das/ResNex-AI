@@ -14,7 +14,6 @@ const TABS = (id: string) => [
   { label: 'Chat', href: `/project/${id}/chat` },
   { label: 'Discover', href: `/project/${id}/discover` },
   { label: 'Library', href: `/project/${id}/library` },
-  { label: 'Compare', href: `/project/${id}/compare` },
   { label: 'Agents', href: `/project/${id}/agents` },
   { label: 'LaTeX', href: `/project/${id}/latex` },
 ]
@@ -813,7 +812,7 @@ export default function AgentsPage() {
           title="AI Agents"
           subtitle="Research agents powered by your paper library"
           tabs={tabs}
-          activeTab={tabs[5].href}
+          activeTab={tabs[4].href}
         />
 
         <div className="flex-1 flex overflow-hidden">

@@ -27,7 +27,6 @@ export default function LatexPage() {
     { label: 'Chat',         href: `/project/${id}/chat` },
     { label: 'Discover',     href: `/project/${id}/discover` },
     { label: 'Library',      href: `/project/${id}/library` },
-    { label: 'Compare',      href: `/project/${id}/compare` },
     { label: 'Agents',       href: `/project/${id}/agents` },
     { label: 'Contributors', href: `/project/${id}/contributors` },
     { label: 'LaTeX',        href: `/project/${id}/latex` },

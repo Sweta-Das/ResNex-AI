@@ -178,7 +178,6 @@ export default function ChatPage() {
     { label: 'Chat', href: `/project/${id}/chat` },
     { label: 'Discover', href: `/project/${id}/discover` },
     { label: 'Library', href: `/project/${id}/library` },
-    { label: 'Compare', href: `/project/${id}/compare` },
     { label: 'Agents', href: `/project/${id}/agents` },
     { label: 'LaTeX', href: `/project/${id}/latex` },
   ]

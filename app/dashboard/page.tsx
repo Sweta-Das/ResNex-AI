@@ -1,7 +1,7 @@
 'use client'
 // app/dashboard/page.tsx — Main dashboard with sidebar + project tabs
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { AggregateDashboard } from '../../components/dashboard/AggregateDashboard'
@@ -160,6 +160,130 @@ function CreateProjectModal({ open, onClose, onCreated }: {
   )
 }
 
+const REFLECT_PROMPTS = [
+  "What felt hard today, and why do you think that is?",
+  "Where did you feel out of your depth this week? What would help?",
+  "Describe a moment you doubted yourself. What would you tell a friend in the same situation?",
+  "What's one thing you've learned recently?",
+  "What assumptions did you bring to your research that have been challenged?",
+  "Who makes you feel most capable? What do they do?",
+  "What would you have to believe about yourself to feel fully legitimate here?",
+  "When do you feel most like a researcher? When least?",
+  "Write about a small win this week — no matter how small.",
+  "What would you regret not saying in this project?",
+  "What are you still figuring out, and is that okay?",
+  "What does 'good enough' look like in your contribution?",
+]
+
+function PersonalReflect() {
+  const today = new Date().toISOString().slice(0, 10)
+  const storageKey = `reflect_${today}`
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
+  )
+  const prompt = REFLECT_PROMPTS[dayOfYear % REFLECT_PROMPTS.length]
+
+  const [open, setOpen] = useState(false)
+  const [text, setText] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem(storageKey)
+    if (stored) { setText(stored); setSaved(true) }
+  }, [storageKey])
+
+  const handleSave = useCallback(() => {
+    localStorage.setItem(storageKey, text)
+    setSaved(true)
+  }, [storageKey, text])
+
+  return (
+    <div
+      className="rounded-2xl"
+      style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
+    >
+      {/* Header — always visible, click to toggle */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-2 p-5 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-base"
+            style={{ background: 'rgba(124,106,245,0.12)', border: '1px solid rgba(124,106,245,0.2)' }}
+          >
+            🔮
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold" style={{ color: 'var(--color-text)' }}>
+              Daily Reflect
+            </p>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
+              {saved ? <span style={{ color: 'var(--color-green)' }}>Saved today ✓</span> : 'Click to write'}
+            </p>
+          </div>
+        </div>
+        <svg
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          style={{ color: 'var(--color-muted)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms ease', flexShrink: 0 }}
+        >
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+
+      {/* Expanded content */}
+      {open && (
+        <div className="px-5 pb-5">
+          <div
+            className="rounded-xl px-3 py-2.5 mb-3"
+            style={{ background: 'rgba(124,106,245,0.06)', border: '1px solid rgba(124,106,245,0.15)' }}
+          >
+            <p className="text-[12px] italic leading-relaxed" style={{ color: 'var(--color-text)' }}>
+              &ldquo;{prompt}&rdquo;
+            </p>
+          </div>
+
+          <textarea
+            value={text}
+            onChange={(e) => { setText(e.target.value); setSaved(false) }}
+            placeholder="Write freely — this is just for you…"
+            rows={4}
+            autoFocus
+            className="w-full resize-none rounded-xl px-3 py-2.5 text-[12px] leading-relaxed outline-none transition-colors"
+            style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text)',
+              fontFamily: 'var(--font-body)',
+            }}
+          />
+
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-[10px] flex items-center gap-1" style={{ color: 'var(--color-muted)' }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              This device only
+            </p>
+            {saved ? (
+              <span className="text-[11px]" style={{ color: 'var(--color-green)' }}>Saved today ✓</span>
+            ) : (
+              <button
+                onClick={handleSave}
+                disabled={text.length < 5}
+                className="text-[12px] px-3 py-1.5 rounded-lg font-medium transition-opacity disabled:opacity-40"
+                style={{ background: 'var(--color-violet)', color: '#fff' }}
+              >
+                Save
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ProfileSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [fullName, setFullName] = useState('')
   const [affiliation, setAffiliation] = useState('')
@@ -273,13 +397,20 @@ export default function DashboardPage() {
           id="main-content"
           tabIndex={-1}
           className="flex-1 bg-[#0a0c10] overflow-y-auto"
-          style={{ padding: '40px 48px' }}
+          style={{ padding: '28px 36px' }}
         >
-          <AggregateDashboard
-            userId={user?.id ?? ''}
-            userName={user?.fullName || user?.firstName || 'Researcher'}
-            onCreateProject={() => setShowCreate(true)}
-          />
+          <div className="flex gap-8 items-start">
+            <div className="flex-1 min-w-0">
+              <AggregateDashboard
+                userId={user?.id ?? ''}
+                userName={user?.fullName || user?.firstName || 'Researcher'}
+                onCreateProject={() => setShowCreate(true)}
+              />
+            </div>
+            <div className="w-72 flex-shrink-0">
+              <PersonalReflect />
+            </div>
+          </div>
         </main>
       </div>
       <CreateProjectModal

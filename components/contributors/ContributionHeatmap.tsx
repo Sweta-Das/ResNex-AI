@@ -85,49 +85,43 @@ export function ContributionHeatmap({ projectId }: ContributionHeatmapProps) {
 
   return (
     <section
-      className="rounded-2xl border p-5"
+      className="rounded-xl border p-3"
       style={{
         background: 'var(--color-surface)',
         borderColor: 'var(--color-border)',
       }}
     >
-      <div className="mb-5 flex items-start justify-between gap-4">
+      <div className="mb-2 flex items-center justify-between gap-4">
         <div>
           <p
-            className="text-xs uppercase tracking-[0.16em]"
-            style={{ color: 'var(--color-faint)', fontFamily: 'var(--font-body)' }}
+            className="text-[11px] font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}
           >
             Your Contributions
           </p>
-          <h3
-            className="mt-1 text-sm font-bold"
-            style={{ color: 'var(--color-text)', fontFamily: 'var(--font-heading)' }}
-          >
-            Small steps, made visible
-          </h3>
           <p
-            className="mt-2 text-xs"
+            className="mt-0.5 text-[11px]"
             style={{ color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}
           >
-            Past 16 weeks. {data?.totalActiveDays ?? 0} active day{(data?.totalActiveDays ?? 0) === 1 ? '' : 's'}.
+            Past 16 weeks · {data?.totalActiveDays ?? 0} active day{(data?.totalActiveDays ?? 0) === 1 ? '' : 's'}
           </p>
         </div>
 
         <div
-          className="min-w-[96px] rounded-2xl border px-4 py-3 text-right"
+          className="rounded-xl border px-3 py-1.5 text-right"
           style={{
             background: 'linear-gradient(135deg, var(--color-violet-14), var(--color-violet-20))',
             borderColor: 'var(--color-blue-26)',
           }}
         >
           <div
-            className="text-3xl font-bold leading-none"
+            className="text-base font-bold leading-none"
             style={{ color: 'var(--color-text)', fontFamily: 'var(--font-heading)' }}
           >
             {data?.currentStreak ?? 0}
           </div>
           <div
-            className="mt-1 text-[11px]"
+            className="mt-0.5 text-[11px]"
             style={{ color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}
           >
             day streak
@@ -136,12 +130,12 @@ export function ContributionHeatmap({ projectId }: ContributionHeatmapProps) {
       </div>
 
       <div
-        className="grid gap-[3px]"
-        style={{ gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}
+        className="grid gap-[2px]"
+        style={{ gridTemplateColumns: 'repeat(16, 8px)' }}
       >
         {(loading ? skeletonDays : data?.days ?? []).map((day, index) => {
           if (loading) {
-            return <div key={index} className="skeleton aspect-square rounded-[3px]" />
+            return <div key={index} className="skeleton rounded-[2px]" style={{ width: 8, height: 8 }} />
           }
 
           const item = day as ContributionDay
@@ -153,15 +147,15 @@ export function ContributionHeatmap({ projectId }: ContributionHeatmapProps) {
             <div
               key={item.date}
               title={title}
-              className="aspect-square rounded-[3px]"
-              style={{ background: getHeatmapColor(item.count) }}
+              className="rounded-[2px]"
+              style={{ width: 8, height: 8, background: getHeatmapColor(item.count) }}
             />
           )
         })}
       </div>
 
       <div
-        className="mt-5 rounded-xl border px-4 py-3 text-sm"
+        className="mt-2 rounded-lg border px-3 py-1.5 text-[11px]"
         style={{
           background: 'var(--color-green-07)',
           borderColor: 'var(--color-green-19)',
