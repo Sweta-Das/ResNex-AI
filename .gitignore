@@ -26,6 +26,11 @@ Thumbs.db
 .idea/
 .vscode/settings.json
 
+# ── Turbopack Cache ──────────────────────────────────────────────
+**/dev/cache/
+**/turbopack/
+dashboard_0/dev/cache/
+
 # ── Logs ─────────────────────────────────────────────────────
 npm-debug.log*
 yarn-debug.log*
