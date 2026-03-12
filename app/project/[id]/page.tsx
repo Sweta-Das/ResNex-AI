@@ -10,6 +10,7 @@ import { Project, ProjectMember, ContributorshipLog } from '../../../types'
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore'
 import { db } from '../../../lib/firebase'
 import { ModerationAlerts, useModerationAlertCount } from '../../../components/project/ModerationAlerts'
+import { ContributionHeatmap } from '../../../components/contributors/ContributionHeatmap'
 const TABS = (id: string) => [
   { label: 'Overview', href: `/project/${id}`, icon: '⬡' },
   { label: 'Chat', href: `/project/${id}/chat`, icon: '💬' },
@@ -553,6 +554,8 @@ export default function ProjectDashboard() {
             {/* Right column — chat */}
             <div className="flex flex-col gap-6">
               <GroupChat projectId={id} />
+
+              <ContributionHeatmap projectId={id} />
 
               {/* Quick nav */}
               <Card>

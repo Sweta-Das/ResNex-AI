@@ -4,8 +4,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../../lib/auth'
 import { prisma } from '../../../../../../lib/prisma'
+import { getVirtualCompileAssets } from '../../../../../../lib/latex-template-assets'
 
 type Params = { params: Promise<{ id: string }> }
+
+function extractErrorLine(logs: string) {
+  const errorMatch = logs.match(/^.*:(\d+):.*error/mi)
+  return errorMatch ? parseInt(errorMatch[1], 10) : undefined
+}
 
 export async function POST(_req: NextRequest, { params }: Params) {
   try {
@@ -25,6 +31,11 @@ export async function POST(_req: NextRequest, { params }: Params) {
       })
     }
 
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: { latexTemplateId: true },
+    })
+
     // Fetch all files for this project
     const files = await prisma.latexFile.findMany({ where: { projectId: id } })
     if (files.length === 0) {
@@ -37,20 +48,54 @@ export async function POST(_req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'No main LaTeX file with content found.' }, { status: 400 })
     }
 
-    // ── latexonline.cc / compatible GET API ──────────────────────────────
-    // latexonline.cc: GET /compile?text=<url-encoded-latex> → returns PDF binary
-    const encoded = encodeURIComponent(mainFile.content)
-    const compileUrl = `${compilerUrl.replace(/\/$/, '')}/compile?text=${encoded}`
+    const compileReady = getVirtualCompileAssets(project?.latexTemplateId, mainFile.content)
+    const formData = new FormData()
+    formData.append('engine', 'pdflatex')
+
+    const compileFiles = files
+      .filter((file) => file.type === 'CODE')
+      .filter((file) => {
+        if (file.fileName === mainFile.fileName) return true
+        if (file.fileName.startsWith('sections/')) return false
+        return /\.(tex|bib|sty|cls|bst|bbx|cbx)$/i.test(file.fileName)
+      })
+
+    for (const file of compileFiles) {
+      const content = file.fileName === mainFile.fileName ? compileReady.mainTex : (file.content ?? '')
+      formData.append('files[]', new Blob([content], { type: 'text/plain' }), file.fileName)
+    }
+
+    for (const file of compileReady.files) {
+      formData.append('files[]', new Blob([file.content], { type: 'text/plain' }), file.fileName)
+    }
 
     let compileRes: Response
     try {
-      compileRes = await fetch(compileUrl, { method: 'GET' })
+      compileRes = await fetch(`${compilerUrl.replace(/\/$/, '')}/compile`, {
+        method: 'POST',
+        body: formData,
+      })
     } catch (err: any) {
       return NextResponse.json({
         success: false,
         pdfUrl: null,
         logs: `Failed to reach compiler at ${compilerUrl}: ${err.message}`,
       })
+    }
+
+    if (compileRes.status === 404) {
+      const encoded = encodeURIComponent(compileReady.mainTex)
+      try {
+        compileRes = await fetch(`${compilerUrl.replace(/\/$/, '')}/compile?text=${encoded}`, {
+          method: 'GET',
+        })
+      } catch (err: any) {
+        return NextResponse.json({
+          success: false,
+          pdfUrl: null,
+          logs: `Failed to reach compiler at ${compilerUrl}: ${err.message}`,
+        })
+      }
     }
 
     const contentType = compileRes.headers.get('content-type') || ''
@@ -87,16 +132,17 @@ export async function POST(_req: NextRequest, { params }: Params) {
         return NextResponse.json({ success: true, pdfUrl: pdfDataUrl, logs })
       }
 
-      const errorMatch = logs.match(/^.*:(\d+):.*error/mi)
-      const errorLine = errorMatch ? parseInt(errorMatch[1]) : undefined
+      const errorLine = extractErrorLine(logs)
       return NextResponse.json({ success: false, pdfUrl: null, logs, errorLine })
     }
 
     // Non-JSON, non-PDF response — likely an error page
+    const errorLine = extractErrorLine(rawBody)
     return NextResponse.json({
       success: false,
       pdfUrl: null,
       logs: `Compiler returned HTTP ${compileRes.status} (${contentType}).\n\nResponse preview:\n${rawBody.slice(0, 500)}`,
+      errorLine,
     })
   } catch (err: any) {
     const msg = err?.message || String(err) || 'Internal server error'

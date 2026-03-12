@@ -46,5 +46,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     include: { user: { select: { id: true, full_name: true, avatar_url: true } } },
   })
 
+  void prisma.$executeRaw`
+    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
+    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'COMMENT_LEFT', NOW())
+  `.catch((error) => {
+    console.error('[contribution-event] comment insert failed:', error)
+  })
+
   return NextResponse.json({ ...comment, content })
 }

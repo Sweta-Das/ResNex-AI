@@ -48,6 +48,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     },
   })
 
+  void prisma.$executeRaw`
+    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
+    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'LATEX_EDIT', NOW())
+  `.catch((error) => {
+    console.error('[contribution-event] latex edit insert failed:', error)
+  })
+
   // Socket event latex_file_updated is emitted client-side after this response
   return NextResponse.json(updated)
 }

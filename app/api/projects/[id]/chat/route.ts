@@ -101,6 +101,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     include: { user: { select: { id: true, full_name: true, avatar_url: true } } },
   })
 
+  void prisma.$executeRaw`
+    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
+    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'CHAT_MESSAGE', NOW())
+  `.catch((error) => {
+    console.error('[contribution-event] chat message insert failed:', error)
+  })
+
   // --- Feature 3: @mention detection ---
   const agentName = (process.env.AGENT_NAME || 'researchbot').toLowerCase()
   const mentionRegex = new RegExp(`@${agentName}\\s*(.*)`, 'i')

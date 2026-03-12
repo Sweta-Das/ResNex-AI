@@ -60,6 +60,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
   })
 
+  void prisma.$executeRaw`
+    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
+    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'LIBRARY_UPLOAD', NOW())
+  `.catch((error) => {
+    console.error('[contribution-event] library upload insert failed:', error)
+  })
+
   // Background: index + summarize
   ;(async () => {
     try {

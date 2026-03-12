@@ -59,5 +59,28 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     data: { section_status: 'in_progress' },
   })
 
+  void (async () => {
+    const sixtySecondsAgo = new Date(Date.now() - 60_000)
+    const recentEdit = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "ContributionEvent"
+      WHERE "projectId" = ${id}
+        AND "userId" = ${user.id}
+        AND "action" = 'SECTION_EDIT'
+        AND "createdAt" >= ${sixtySecondsAgo}
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `
+
+    if (recentEdit.length === 0) {
+      await prisma.$executeRaw`
+        INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
+        VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'SECTION_EDIT', NOW())
+      `
+    }
+  })().catch((error) => {
+    console.error('[contribution-event] section edit insert failed:', error)
+  })
+
   return NextResponse.json(section)
 }

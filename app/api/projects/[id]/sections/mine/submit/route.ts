@@ -56,5 +56,12 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     },
   })
 
+  void prisma.$executeRaw`
+    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
+    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'SECTION_SUBMIT', NOW())
+  `.catch((error) => {
+    console.error('[contribution-event] section submit insert failed:', error)
+  })
+
   return NextResponse.json(updated)
 }

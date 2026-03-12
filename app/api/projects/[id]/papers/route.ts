@@ -85,6 +85,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
   })
 
+  void prisma.$executeRaw`
+    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
+    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'PAPER_ADDED', NOW())
+  `.catch((error) => {
+    console.error('[contribution-event] paper add insert failed:', error)
+  })
+
   // Background: index for RAG + summarize
   const pdfUrl = paper.fileUrl
   ;(async () => {
