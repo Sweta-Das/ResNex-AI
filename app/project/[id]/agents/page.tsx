@@ -32,6 +32,15 @@ function QAPanel({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const { error } = useToast()
+  const sessionKey = `agents:qa:${projectId}`
+
+  useEffect(() => {
+    try { const raw = sessionStorage.getItem(sessionKey); if (raw) setMessages(JSON.parse(raw)) } catch {}
+  }, [sessionKey])
+
+  useEffect(() => {
+    try { sessionStorage.setItem(sessionKey, JSON.stringify(messages)) } catch {}
+  }, [messages, sessionKey])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -174,6 +183,15 @@ function GapsPanel({ projectId }: { projectId: string }) {
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const { error } = useToast()
+  const sessionKey = `agents:gaps:${projectId}`
+
+  useEffect(() => {
+    try { const raw = sessionStorage.getItem(sessionKey); if (raw) setResult(JSON.parse(raw)) } catch {}
+  }, [sessionKey])
+
+  useEffect(() => {
+    try { if (result) sessionStorage.setItem(sessionKey, JSON.stringify(result)) } catch {}
+  }, [result, sessionKey])
 
   async function findGaps() {
     setLoading(true)
@@ -275,6 +293,18 @@ function WriterPanel({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const { error } = useToast()
+  const sessionKey = `agents:writer:${projectId}`
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(sessionKey)
+      if (raw) { const s = JSON.parse(raw); setResult(s.result); setTopic(s.topic ?? '') }
+    } catch {}
+  }, [sessionKey])
+
+  useEffect(() => {
+    try { if (result) sessionStorage.setItem(sessionKey, JSON.stringify({ result, topic })) } catch {}
+  }, [result, topic, sessionKey])
 
   async function draft() {
     setLoading(true)
@@ -679,6 +709,15 @@ function SummarizerPanel({ projectId }: { projectId: string }) {
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const { error } = useToast()
+  const sessionKey = `agents:summarizer:${projectId}`
+
+  useEffect(() => {
+    try { const raw = sessionStorage.getItem(sessionKey); if (raw) setResult(JSON.parse(raw)) } catch {}
+  }, [sessionKey])
+
+  useEffect(() => {
+    try { if (result) sessionStorage.setItem(sessionKey, JSON.stringify(result)) } catch {}
+  }, [result, sessionKey])
 
   async function summarize() {
     setLoading(true)

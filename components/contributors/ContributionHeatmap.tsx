@@ -17,15 +17,15 @@ type ContributionHeatmapProps = {
   projectId: string | null
 }
 
-const skeletonDays = Array.from({ length: 112 }, (_, index) => index)
+const skeletonDays = Array.from({ length: 392 }, (_, index) => index)
 const DAY_MS = 24 * 60 * 60 * 1000
 
 function buildEmptyResponse(): ContributionResponse {
   const today = new Date()
-  const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - 111 * DAY_MS)
+  const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - 391 * DAY_MS)
 
   return {
-    days: Array.from({ length: 112 }, (_, index) => {
+    days: Array.from({ length: 392 }, (_, index) => {
       const date = new Date(start.getTime() + index * DAY_MS)
       return {
         date: date.toISOString().slice(0, 10),
@@ -38,12 +38,14 @@ function buildEmptyResponse(): ContributionResponse {
 }
 
 function getHeatmapColor(count: number) {
-  if (count >= 10) return 'var(--color-heatmap-4)'
-  if (count >= 6) return 'var(--color-heatmap-3)'
-  if (count >= 3) return 'var(--color-heatmap-2)'
-  if (count >= 1) return 'var(--color-heatmap-1)'
-  return 'var(--color-heatmap-0)'
+  if (count >= 11) return '#39d353'
+  if (count >= 6)  return '#26a641'
+  if (count >= 3)  return '#006d32'
+  if (count >= 1)  return '#0e4429'
+  return '#161b22'
 }
+
+const LEGEND_COLORS = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353']
 
 export function ContributionHeatmap({ projectId }: ContributionHeatmapProps) {
   const [data, setData] = useState<ContributionResponse | null>(null)
@@ -83,75 +85,54 @@ export function ContributionHeatmap({ projectId }: ContributionHeatmapProps) {
     }
   }, [projectId])
 
+  const activeDays = data?.totalActiveDays ?? 0
+
   return (
     <section
       className="rounded-xl border p-3"
-      style={{
-        background: 'var(--color-surface)',
-        borderColor: 'var(--color-border)',
-      }}
+      style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
     >
-      <div className="mb-2 flex items-center justify-between gap-4">
-        <div>
-          <p
-            className="text-[11px] font-semibold uppercase tracking-wider"
-            style={{ color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}
-          >
-            Your Contributions
-          </p>
-          <p
-            className="mt-0.5 text-[11px]"
-            style={{ color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}
-          >
-            Past 16 weeks · {data?.totalActiveDays ?? 0} active day{(data?.totalActiveDays ?? 0) === 1 ? '' : 's'}
-          </p>
-        </div>
-
-        <div
-          className="rounded-xl border px-3 py-1.5 text-right"
-          style={{
-            background: 'linear-gradient(135deg, var(--color-violet-14), var(--color-violet-20))',
-            borderColor: 'var(--color-blue-26)',
-          }}
+      <div className="mb-2">
+        <p
+          className="text-[11px] font-semibold uppercase tracking-wider"
+          style={{ color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}
         >
-          <div
-            className="text-base font-bold leading-none"
-            style={{ color: 'var(--color-text)', fontFamily: 'var(--font-heading)' }}
-          >
-            {data?.currentStreak ?? 0}
-          </div>
-          <div
-            className="mt-0.5 text-[11px]"
-            style={{ color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}
-          >
-            day streak
-          </div>
-        </div>
+          Your Contributions
+        </p>
+        <p
+          className="mt-0.5 text-[11px]"
+          style={{ color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}
+        >
+          Past 56 weeks · {activeDays} active day{activeDays === 1 ? '' : 's'}
+        </p>
       </div>
 
-      <div
-        className="grid gap-[2px]"
-        style={{ gridTemplateColumns: 'repeat(16, 8px)' }}
-      >
+      <div style={{ display: 'grid', gridTemplateRows: 'repeat(7, 10px)', gridAutoFlow: 'column', gap: 3 }}>
         {(loading ? skeletonDays : data?.days ?? []).map((day, index) => {
           if (loading) {
-            return <div key={index} className="skeleton rounded-[2px]" style={{ width: 8, height: 8 }} />
+            return (
+              <div
+                key={index}
+                style={{ width: 10, height: 10, borderRadius: 2, background: '#161b22', border: '1px solid rgba(255,255,255,0.05)' }}
+              />
+            )
           }
-
           const item = day as ContributionDay
-          const title = item.count > 0
-            ? `${item.count} contribution(s) on ${item.date}`
-            : `No activity on ${item.date}`
-
           return (
             <div
               key={item.date}
-              title={title}
-              className="rounded-[2px]"
-              style={{ width: 8, height: 8, background: getHeatmapColor(item.count) }}
+              style={{ width: 10, height: 10, borderRadius: 2, background: getHeatmapColor(item.count), border: '1px solid rgba(255,255,255,0.05)' }}
             />
           )
         })}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6 }}>
+        <span style={{ fontSize: 10, color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}>Less</span>
+        {LEGEND_COLORS.map((color) => (
+          <div key={color} style={{ width: 8, height: 8, borderRadius: 2, background: color, border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }} />
+        ))}
+        <span style={{ fontSize: 10, color: 'var(--color-muted)', fontFamily: 'var(--font-body)' }}>More</span>
       </div>
 
       <div

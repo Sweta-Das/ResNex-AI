@@ -1,9 +1,122 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ContributionHeatmap } from '@/components/contributors/ContributionHeatmap'
 import { Button } from '@/components/ui'
+
+const REFLECT_PROMPTS = [
+  "What felt hard today, and why do you think that is?",
+  "Where did you feel out of your depth this week? What would help?",
+  "Describe a moment you doubted yourself. What would you tell a friend in the same situation?",
+  "What's one thing you've learned recently?",
+  "What assumptions did you bring to your research that have been challenged?",
+  "Who makes you feel most capable? What do they do?",
+  "What would you have to believe about yourself to feel fully legitimate here?",
+  "When do you feel most like a researcher? When least?",
+  "Write about a small win this week — no matter how small.",
+  "What would you regret not saying in this project?",
+  "What are you still figuring out, and is that okay?",
+  "What does 'good enough' look like in your contribution?",
+]
+
+function DailyReflect() {
+  const today = new Date().toISOString().slice(0, 10)
+  const storageKey = `reflect_${today}`
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
+  )
+  const prompt = REFLECT_PROMPTS[dayOfYear % REFLECT_PROMPTS.length]
+  const [text, setText] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem(storageKey)
+    if (stored) { setText(stored); setSaved(true) }
+  }, [storageKey])
+
+  const handleSave = useCallback(() => {
+    localStorage.setItem(storageKey, text)
+    setSaved(true)
+  }, [storageKey, text])
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 12,
+        padding: 12,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <div
+          style={{
+            width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13,
+            background: 'rgba(124,106,245,0.12)', border: '1px solid rgba(124,106,245,0.2)',
+          }}
+        >
+          🔮
+        </div>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text)', fontFamily: 'var(--font-body)', margin: 0 }}>
+            Daily Reflect
+          </p>
+          <p style={{ fontSize: 10, color: saved ? 'var(--color-green)' : 'var(--color-muted)', fontFamily: 'var(--font-body)', margin: 0 }}>
+            {saved ? 'Saved today ✓' : 'Private · this device only'}
+          </p>
+        </div>
+      </div>
+
+      <div
+        style={{
+          borderRadius: 8, padding: '6px 10px', marginBottom: 8,
+          background: 'rgba(124,106,245,0.06)', border: '1px solid rgba(124,106,245,0.15)',
+        }}
+      >
+        <p style={{ fontSize: 11, fontStyle: 'italic', lineHeight: 1.5, color: 'var(--color-text)', fontFamily: 'var(--font-body)', margin: 0 }}>
+          &ldquo;{prompt}&rdquo;
+        </p>
+      </div>
+
+      <textarea
+        value={text}
+        onChange={(e) => { setText(e.target.value); setSaved(false) }}
+        placeholder="Write freely…"
+        style={{
+          flex: 1, resize: 'none', borderRadius: 8, padding: '8px 10px',
+          fontSize: 11, lineHeight: 1.6, outline: 'none',
+          background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+          color: 'var(--color-text)', fontFamily: 'var(--font-body)',
+        }}
+      />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+        {saved ? (
+          <span style={{ fontSize: 11, color: 'var(--color-green)', fontFamily: 'var(--font-body)' }}>Saved ✓</span>
+        ) : (
+          <button
+            onClick={handleSave}
+            disabled={text.length < 5}
+            style={{
+              fontSize: 11, padding: '4px 12px', borderRadius: 6, fontWeight: 500,
+              cursor: text.length >= 5 ? 'pointer' : 'default',
+              background: text.length >= 5 ? 'var(--color-violet)' : 'var(--color-border)',
+              color: text.length >= 5 ? '#fff' : 'var(--color-muted)',
+              opacity: text.length >= 5 ? 1 : 0.5, border: 'none', fontFamily: 'var(--font-body)',
+            }}
+          >
+            Save
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 type DashboardStats = {
   totalActions: number
@@ -205,7 +318,14 @@ export function AggregateDashboard({ userId: _userId, userName, onCreateProject 
         <StatTile value={stats?.currentStreak ?? 0} label="day streak" fallback="Start today ✦" />
       </div>
 
-      <ContributionHeatmap projectId={null} />
+      <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
+        <div style={{ flex: 1 }}>
+          <ContributionHeatmap projectId={null} />
+        </div>
+        <div style={{ width: 200, flexShrink: 0 }}>
+          <DailyReflect />
+        </div>
+      </div>
 
       <div
         className="rounded-xl border"

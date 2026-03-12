@@ -1,7 +1,7 @@
 'use client'
 // components/workspace/PersonalResearchAgent.tsx — Chat-only personal research agent
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Spinner } from '../ui'
 
 interface ChatMessage {
@@ -19,6 +19,15 @@ export function PersonalResearchAgent({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const sessionKey = `agents:research:${projectId}`
+
+  useEffect(() => {
+    try { const raw = sessionStorage.getItem(sessionKey); if (raw) setMessages(JSON.parse(raw)) } catch {}
+  }, [sessionKey])
+
+  useEffect(() => {
+    try { sessionStorage.setItem(sessionKey, JSON.stringify(messages)) } catch {}
+  }, [messages, sessionKey])
 
   async function send(e: React.FormEvent) {
     e.preventDefault()

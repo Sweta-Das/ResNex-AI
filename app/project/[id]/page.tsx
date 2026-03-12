@@ -504,6 +504,12 @@ export default function ProjectDashboard() {
                       </span>
                     )}
                   </button>
+                  <button
+                    onClick={() => router.push(`/project/${id}/admin`)}
+                    className="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors text-[#7a839a] hover:text-[#e8eaf0]"
+                  >
+                    Admin
+                  </button>
                 </div>
               )}
 
@@ -544,7 +550,7 @@ export default function ProjectDashboard() {
                 />
               )}
 
-              <GroupChat projectId={id} />
+              <ContributionHeatmap projectId={id} />
 
               {/* Contributorship log */}
               <ContributorshipTimeline logs={logs} />
@@ -554,34 +560,12 @@ export default function ProjectDashboard() {
 
             {/* Right column — chat */}
             <div className="flex flex-col gap-6">
-              <ContributionHeatmap projectId={id} />
-
-              <GrowthTracker projectId={id} />
+              <GroupChat projectId={id} />
 
               <NormalizingPanel projectId={id} />
 
-              {/* Quick nav */}
-              <Card>
-                <h3 className="font-semibold text-sm text-[#e8eaf0] mb-3">Quick Access</h3>
-                <div className="flex flex-col gap-2">
-                  {[
-                    { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ', desc: 'Paper editor' },
-                    ...(myRole === 'admin' ? [{ label: 'Admin', href: `/project/${id}/admin`, icon: '⚙', desc: 'Manage project' }] : []),
-                  ].map(nav => (
-                    <button
-                      key={nav.href}
-                      onClick={() => router.push(nav.href)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#1a1f2e] transition-colors text-left group"
-                    >
-                      <span className="text-base">{nav.icon}</span>
-                      <div>
-                        <p className="text-sm font-medium text-[#c8cad0] group-hover:text-[#e8eaf0] transition-colors">{nav.label}</p>
-                        <p className="text-xs text-[#3d4558]">{nav.desc}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </Card>
+              <GrowthTracker projectId={id} />
+
             </div>
           </div>
         </div>
