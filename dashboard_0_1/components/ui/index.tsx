@@ -80,11 +80,18 @@ export function Textarea({ label, className = '', ...props }: TextareaProps) {
   )
 }
 
-// ─── Badge / Status Pill ───────────────────────────────────────────────────────
-export function StatusPill({ status }: { status: string }) {
-  const label = status.replace(/_/g, ' ')
+type StatusPillProps = React.HTMLAttributes<HTMLSpanElement> & {
+  status: string
+}
+
+export function StatusPill({ status, className, ...props }: StatusPillProps) {
+  const label = status.replace(/_/g, " ")
+
   return (
-    <span className={`status-${status} inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium`}>
+    <span
+      className={`status-${status} inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className ?? ""}`}
+      {...props}
+    >
       {label}
     </span>
   )
