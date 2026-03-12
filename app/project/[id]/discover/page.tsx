@@ -14,9 +14,7 @@ const TABS = (id: string) => [
   { label: 'Library', href: `/project/${id}/library` },
   { label: 'Compare', href: `/project/${id}/compare` },
   { label: 'Agents', href: `/project/${id}/agents` },
-  { label: 'Review', href: `/project/${id}/review` },
-  { label: 'Output', href: `/project/${id}/output` },
-    { label: 'LaTeX', href: `/project/${id}/latex` },
+  { label: 'LaTeX', href: `/project/${id}/latex` },
 ]
 
 type Source = 'arxiv' | 'semantic-scholar'
@@ -133,7 +131,7 @@ export default function DiscoverPage() {
           title="Discover Papers"
           subtitle="Search arXiv and Semantic Scholar, import papers into your project library"
           tabs={tabs}
-          activeTab={tabs[3].href}
+          activeTab={tabs[2].href}
         />
 
         <div className="flex-1 overflow-y-auto p-6 bg-[#0a0c10]">

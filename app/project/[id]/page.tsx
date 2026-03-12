@@ -21,8 +21,6 @@ const TABS = (id: string) => [
   { label: 'Library', href: `/project/${id}/library`, icon: '📚' },
   { label: 'Compare', href: `/project/${id}/compare`, icon: '⇄' },
   { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
-  { label: 'Review', href: `/project/${id}/review`, icon: '👁' },
-  { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },
   { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
 ]
 
@@ -438,7 +436,7 @@ export default function ProjectDashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ project_id: id }),
     })
-    router.push(`/project/${id}/output`)
+    router.push(`/project/${id}/latex`)
   }
 
   if (loading) return (
@@ -569,8 +567,7 @@ export default function ProjectDashboard() {
                 <h3 className="font-semibold text-sm text-[#e8eaf0] mb-3">Quick Access</h3>
                 <div className="flex flex-col gap-2">
                   {[
-                    { label: 'Review', href: `/project/${id}/review`, icon: '👁', desc: 'Read team sections' },
-                    { label: 'Output', href: `/project/${id}/output`, icon: '⬇', desc: 'Merged document' },
+                    { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ', desc: 'Paper editor' },
                     ...(myRole === 'admin' ? [{ label: 'Admin', href: `/project/${id}/admin`, icon: '⚙', desc: 'Manage project' }] : []),
                   ].map(nav => (
                     <button

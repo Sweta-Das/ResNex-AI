@@ -14,9 +14,7 @@ const TABS = (id: string) => [
   { label: 'Library', href: `/project/${id}/library` },
   { label: 'Compare', href: `/project/${id}/compare` },
   { label: 'Agents', href: `/project/${id}/agents` },
-  { label: 'Review', href: `/project/${id}/review` },
-  { label: 'Output', href: `/project/${id}/output` },
-    { label: 'LaTeX', href: `/project/${id}/latex` },
+  { label: 'LaTeX', href: `/project/${id}/latex` },
 ]
 
 const DIMENSIONS = ['problem_addressed', 'methodology', 'datasets', 'findings', 'limitations', 'novelty']
@@ -71,7 +69,7 @@ export default function ComparePage() {
           title="Compare Papers"
           subtitle="Select 2+ papers from your library to generate a side-by-side AI comparison"
           tabs={tabs}
-          activeTab={tabs[5].href}
+          activeTab={tabs[4].href}
         />
 
         <div className="flex-1 flex overflow-hidden">

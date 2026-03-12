@@ -76,8 +76,6 @@ export default function AdminPage() {
     { label: 'Library', href: `/project/${id}/library` },
     { label: 'Compare', href: `/project/${id}/compare` },
     { label: 'Agents', href: `/project/${id}/agents` },
-    { label: 'Review', href: `/project/${id}/review` },
-    { label: 'Output', href: `/project/${id}/output` },
     { label: 'LaTeX', href: `/project/${id}/latex` },
     { label: 'Admin ⚙', href: `/project/${id}/admin` },
   ]

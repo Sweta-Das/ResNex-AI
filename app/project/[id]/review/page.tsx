@@ -113,8 +113,6 @@ export default function ReviewPage() {
     { label: 'Library', href: `/project/${id}/library` },
     { label: 'Compare', href: `/project/${id}/compare` },
     { label: 'Agents', href: `/project/${id}/agents` },
-    { label: 'Review', href: `/project/${id}/review` },
-    { label: 'Output', href: `/project/${id}/output` },
     { label: 'LaTeX', href: `/project/${id}/latex` },
   ]
 
@@ -126,7 +124,7 @@ export default function ReviewPage() {
           title="Peer Review"
           subtitle="Read your teammates' submitted sections"
           tabs={tabs}
-          activeTab={tabs[7].href}
+          activeTab={`/project/${id}/review`}
         />
         <div className="flex-1 overflow-y-auto p-8 bg-[#0a0c10]">
           {loading ? (

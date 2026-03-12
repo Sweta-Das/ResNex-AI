@@ -16,8 +16,6 @@ export const PROJECT_TABS = (id: string) => [
   { id: 'library',   label: 'Library',   href: `/project/${id}/library`    },
   { id: 'compare',   label: 'Compare',   href: `/project/${id}/compare`    },
   { id: 'agents',    label: 'Agents',    href: `/project/${id}/agents`     },
-  { id: 'review',    label: 'Review',    href: `/project/${id}/review`     },
-  { id: 'output',    label: 'Output',    href: `/project/${id}/output`     },
   { id: 'latex',     label: 'LaTeX',     href: `/project/${id}/latex`      },
 ] as const
 

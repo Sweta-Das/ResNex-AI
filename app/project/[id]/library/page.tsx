@@ -14,9 +14,7 @@ const TABS = (id: string) => [
   { label: 'Library', href: `/project/${id}/library` },
   { label: 'Compare', href: `/project/${id}/compare` },
   { label: 'Agents', href: `/project/${id}/agents` },
-  { label: 'Review', href: `/project/${id}/review` },
-  { label: 'Output', href: `/project/${id}/output` },
-    { label: 'LaTeX', href: `/project/${id}/latex` },
+  { label: 'LaTeX', href: `/project/${id}/latex` },
 ]
 
 const statusColors: Record<string, string> = {
@@ -157,7 +155,7 @@ export default function LibraryPage() {
           title="Paper Library"
           subtitle={`${papers.length} paper${papers.length !== 1 ? 's' : ''} · AI summaries generated automatically`}
           tabs={tabs}
-          activeTab={tabs[4].href}
+          activeTab={tabs[3].href}
         />
 
         <div className="library-layout flex-1 flex overflow-hidden">

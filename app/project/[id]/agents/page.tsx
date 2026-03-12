@@ -16,9 +16,7 @@ const TABS = (id: string) => [
   { label: 'Library', href: `/project/${id}/library` },
   { label: 'Compare', href: `/project/${id}/compare` },
   { label: 'Agents', href: `/project/${id}/agents` },
-  { label: 'Review', href: `/project/${id}/review` },
-  { label: 'Output', href: `/project/${id}/output` },
-    { label: 'LaTeX', href: `/project/${id}/latex` },
+  { label: 'LaTeX', href: `/project/${id}/latex` },
 ]
 
 type AgentTab = 'qa' | 'gaps' | 'writer' | 'planner' | 'summarizer' | 'research'
@@ -815,7 +813,7 @@ export default function AgentsPage() {
           title="AI Agents"
           subtitle="Research agents powered by your paper library"
           tabs={tabs}
-          activeTab={tabs[6].href}
+          activeTab={tabs[5].href}
         />
 
         <div className="flex-1 flex overflow-hidden">

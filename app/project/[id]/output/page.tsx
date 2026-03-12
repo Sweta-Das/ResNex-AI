@@ -122,8 +122,6 @@ export default function OutputPage() {
     { label: 'Library', href: `/project/${id}/library` },
     { label: 'Compare', href: `/project/${id}/compare` },
     { label: 'Agents', href: `/project/${id}/agents` },
-    { label: 'Review', href: `/project/${id}/review` },
-    { label: 'Output', href: `/project/${id}/output` },
     { label: 'LaTeX', href: `/project/${id}/latex` },
   ]
 
@@ -143,7 +141,7 @@ export default function OutputPage() {
           title="Final Output"
           subtitle="Merged document, bias audit, and exports"
           tabs={tabs}
-          activeTab={tabs[8].href}
+          activeTab={`/project/${id}/output`}
           actions={
             <div className="flex gap-2">
               <Button size="sm" variant="secondary" onClick={exportPdf}>Export PDF</Button>
