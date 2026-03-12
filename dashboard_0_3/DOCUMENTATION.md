@@ -354,7 +354,7 @@ Copy `env.txt` (or `.env.example`) to `.env.local` and fill in your values.
 | Variable | Description | Default |
 |---|---|---|
 | `LLM_PROVIDER` | `"anthropic"` \| `"huggingface"` \| `"ollama"` | `"anthropic"` |
-| `HUGGINGFACE_API_KEY` | HuggingFace API key | — |
+| `HUGGINGFACE_KEY` | HuggingFace API key | — |
 | `HF_MODEL` | HuggingFace model ID | `"Qwen/Qwen2.5-72B-Instruct"` |
 | `OLLAMA_BASE_URL` | Ollama server URL | `"http://localhost:11434"` |
 | `OLLAMA_MODEL` | Ollama model name | `"llama3"` |

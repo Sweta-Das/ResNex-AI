@@ -8,6 +8,17 @@ import ThemeToggle from "@/components/ui/theme-toggle"
 
 interface Tab { label: string; href: string; icon?: string }
 
+// Canonical tab order — import this wherever you need the project tab list
+export const PROJECT_TABS = (id: string) => [
+  { id: 'overview',  label: 'Overview',  href: `/project/${id}`            },
+  { id: 'chat',      label: 'Chat',      href: `/project/${id}/chat`       },
+  { id: 'discover',  label: 'Discover',  href: `/project/${id}/discover`   },
+  { id: 'library',   label: 'Library',   href: `/project/${id}/library`    },
+  { id: 'agents',    label: 'Agents',    href: `/project/${id}/agents`     },
+  { id: 'latex',     label: 'LaTeX',     href: `/project/${id}/latex`      },
+  { id: 'output',    label: 'Output',    href: `/project/${id}/output`     },
+] as const
+
 interface PageHeaderProps {
   title: string
   subtitle?: string

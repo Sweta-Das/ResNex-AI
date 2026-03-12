@@ -12,7 +12,6 @@ const TABS = (id: string) => [
   { label: 'Chat', href: `/project/${id}/chat` , icon: '💬' },
   { label: 'Discover', href: `/project/${id}/discover` , icon: '🔍' },
   { label: 'Library', href: `/project/${id}/library` , icon: '📚' },
-  { label: 'Compare', href: `/project/${id}/compare` , icon: '⇄' },
   { label: 'Agents', href: `/project/${id}/agents` , icon: '🤖' },
   { label: 'LaTeX', href: `/project/${id}/latex` , icon: 'τ' },
   { label: 'Output', href: `/project/${id}/output` , icon: '⬇' },
@@ -72,7 +71,15 @@ export default function DiscoverPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query, max_results: 15 }),
         })
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          error(
+            (data.error || `arXiv search failed (${res.status})`) +
+              (data.hint ? ` — ${data.hint}` : '') +
+              (data.details ? ` (${String(data.details).slice(0, 120)})` : '')
+          )
+          return
+        }
         setArxivResults(data.results || [])
       } else {
         const res = await fetch(`/api/projects/${id}/papers/discover/semantic-scholar`, {
@@ -80,7 +87,15 @@ export default function DiscoverPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query, limit: 15 }),
         })
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          error(
+            (data.error || `Semantic Scholar search failed (${res.status})`) +
+              (data.hint ? ` — ${data.hint}` : '') +
+              (data.details ? ` (${String(data.details).slice(0, 120)})` : '')
+          )
+          return
+        }
         setSSResults(data.results || [])
       }
     } catch {

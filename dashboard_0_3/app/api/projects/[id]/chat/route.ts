@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../lib/auth'
+import { recordContributionEvent } from '../../../../../lib/contribution-events'
 import { prisma } from '../../../../../lib/prisma'
 import { moderateWithContextAndAlert } from '../../../../../lib/moderation'
 import { callLLM } from '../../../../../lib/llm'
@@ -10,27 +11,42 @@ import { getAgent } from '../../../../../lib/agents'
 
 // GET /api/projects/[id]/chat
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getAuthUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const user = await getAuthUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await params
+    const { id } = await params
 
-  const member = await prisma.projectMember.findFirst({
-    where: { project_id: id, user_id: user.id },
-  })
-  if (!member) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const member = await prisma.projectMember.findFirst({
+      where: { project_id: id, user_id: user.id },
+    })
+    if (!member) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const messages = await prisma.chatMessage.findMany({
-    where: { project_id: id, context: 'group_chat' },
-    select: {
-      id: true, content: true, role: true, created_at: true, attachments: true,
-      user_id: true, user: { select: { id: true, full_name: true, avatar_url: true } },
-    },
-    orderBy: { created_at: 'desc' },
-    take: 50,
-  })
+    const messages = await prisma.chatMessage.findMany({
+      where: { project_id: id, context: 'group_chat' },
+      select: {
+        id: true, content: true, role: true, created_at: true, attachments: true,
+        isAnonymous: true,
+        user_id: true, user: { select: { id: true, full_name: true, avatar_url: true } },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 50,
+    })
 
-  return NextResponse.json(messages.reverse())
+    // Mask sender identity for anonymous messages the current user did not write
+    const masked = messages.reverse().map((m) => {
+      if (m.isAnonymous && m.user_id !== user.id) {
+        return { ...m, user_id: null, user: null }
+      }
+      return m
+    })
+
+    return NextResponse.json(masked)
+  } catch (err: any) {
+    const msg = err?.message || String(err) || 'Internal server error'
+    console.error('[GET /api/projects/[id]/chat]', msg)
+    return NextResponse.json({ error: 'Internal server error', details: msg }, { status: 500 })
+  }
 }
 
 // POST /api/projects/[id]/chat — send message with moderation gate
@@ -46,7 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!member) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { content, messageType, attachments = [] } = body
+  const { content, messageType, attachments = [], isAnonymous = false } = body
 
   if (!content?.trim() && attachments.length === 0) {
     return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 })
@@ -97,15 +113,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       context: 'group_chat',
       messageType: messageType || (attachments.length > 0 ? 'file' : 'text'),
       attachments,
+      isAnonymous: !!isAnonymous,
     },
     include: { user: { select: { id: true, full_name: true, avatar_url: true } } },
   })
 
-  void prisma.$executeRaw`
-    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
-    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'CHAT_MESSAGE', NOW())
-  `.catch((error) => {
-    console.error('[contribution-event] chat message insert failed:', error)
+  void recordContributionEvent({
+    prisma,
+    projectId: id,
+    userId: user.id,
+    action: 'CHAT_MESSAGE',
+    logLabel: 'chat message insert',
   })
 
   // --- Feature 3: @mention detection ---

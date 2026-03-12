@@ -53,8 +53,8 @@ export function chunkText(text: string): string[] {
 // Returns a 384-dimensional vector
 // ---------------------------------------------------------------------------
 export async function embedText(text: string): Promise<number[]> {
-  const apiKey = process.env.HUGGINGFACE_API_KEY
-  if (!apiKey) throw new Error('HUGGINGFACE_API_KEY is not set')
+  const apiKey = process.env.HUGGINGFACE_KEY
+  if (!apiKey) throw new Error('HUGGINGFACE_KEY is not set')
 
   const res = await fetch(
     `https://router.huggingface.co/hf-inference/models/${HF_EMBEDDING_MODEL}/pipeline/feature-extraction`,

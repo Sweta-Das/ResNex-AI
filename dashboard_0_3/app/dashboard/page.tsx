@@ -4,37 +4,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import { AggregateDashboard } from '../../components/dashboard/AggregateDashboard'
 import { Sidebar } from '../../components/layout/Sidebar'
 import { Modal, Button, Input, Textarea, ToastProvider, useToast } from '../../components/ui'
 import { Project } from '../../types'
-
-function WelcomeScreen({ userName, onCreateProject }: { userName: string; onCreateProject: () => void }) {
-  return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center max-w-md animate-fade-up">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#4f8ef7]/20 to-[#7c6af5]/20
-          border border-[#4f8ef7]/20 flex items-center justify-center mx-auto mb-6">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#4f8ef7" strokeWidth="1.5">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-[#e8eaf0] mb-2">
-          Welcome back, {userName.split(' ')[0]}
-        </h2>
-        <p className="text-[#7a839a] mb-8 text-sm leading-relaxed">
-          Select a project from the sidebar to get started, or create a new collaborative research workspace.
-        </p>
-        <Button onClick={onCreateProject} size="lg" icon={
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-        }>
-          New Project
-        </Button>
-      </div>
-    </div>
-  )
-}
 
 function CreateProjectModal({ open, onClose, onCreated }: {
   open: boolean; onClose: () => void; onCreated: (p: Project) => void
@@ -247,12 +220,13 @@ export default function DashboardPage() {
   const [myRoles, setMyRoles] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    if (!isLoaded) return
     fetchProjects()
     // Check if profile needs completion
     fetch('/api/user').then(r => r.ok ? r.json() : null).then(u => {
       if (u && !u.affiliation) setShowProfile(true)
     }).catch(() => {})
-  }, [])
+  }, [isLoaded])
 
   async function fetchProjects() {
     try {
@@ -295,8 +269,14 @@ export default function DashboardPage() {
           onCreateProject={() => setShowCreate(true)}
           myRole={myRoles}
         />
-        <main className="flex-1 bg-[#0a0c10] overflow-hidden">
-          <WelcomeScreen
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 bg-[#0a0c10] overflow-y-auto"
+          style={{ padding: '28px 36px' }}
+        >
+          <AggregateDashboard
+            userId={user?.id ?? ''}
             userName={user?.fullName || user?.firstName || 'Researcher'}
             onCreateProject={() => setShowCreate(true)}
           />

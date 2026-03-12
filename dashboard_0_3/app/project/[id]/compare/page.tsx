@@ -12,7 +12,6 @@ const TABS = (id: string) => [
   { label: 'Chat', href: `/project/${id}/chat`, icon: '💬' },
   { label: 'Discover', href: `/project/${id}/discover`, icon: '🔍' },
   { label: 'Library', href: `/project/${id}/library`, icon: '📚' },
-  { label: 'Compare', href: `/project/${id}/compare`, icon: '⇄' },
   { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
   { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
   { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },

@@ -86,10 +86,10 @@ service cloud.firestore {
 
 ### 5. Database setup
 
-Push the Prisma schema to your Neon database:
+Apply the Prisma migrations to your Neon database:
 
 ```bash
-npm run db:push
+npm run db:migrate
 npm run db:generate
 ```
 

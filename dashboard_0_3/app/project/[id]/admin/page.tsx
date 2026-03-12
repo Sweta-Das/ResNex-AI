@@ -74,11 +74,17 @@ export default function AdminPage() {
     { label: 'Chat', href: `/project/${id}/chat`, icon: '💬' },
     { label: 'Discover', href: `/project/${id}/discover`, icon: '🔍' },
     { label: 'Library', href: `/project/${id}/library`, icon: '📚' },
-    { label: 'Compare', href: `/project/${id}/compare`, icon: '⇄' },
     { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
     { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
     { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },
     { label: 'Admin ⚙', href: `/project/${id}/admin`, icon: '⚙' },
+    { label: 'Overview', href: `/project/${id}` },
+    { label: 'Chat', href: `/project/${id}/chat` },
+    { label: 'Discover', href: `/project/${id}/discover` },
+    { label: 'Library', href: `/project/${id}/library` },
+    { label: 'Agents', href: `/project/${id}/agents` },
+    { label: 'LaTeX', href: `/project/${id}/latex` },
+    { label: 'Admin ⚙', href: `/project/${id}/admin` },
   ]
 
   return (
@@ -89,6 +95,7 @@ export default function AdminPage() {
           title="Admin Panel"
           subtitle="Manage members, subtopics, and project settings"
           tabs={tabs}
+          activeTab={`/project/${id}/admin`}
         />
 
         <div className="flex-1 overflow-y-auto p-8 bg-[#0a0c10]">

@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../../lib/auth'
+import { recordContributionEvent } from '../../../../../../lib/contribution-events'
 import { prisma } from '../../../../../../lib/prisma'
 import { indexDocument } from '../../../../../../lib/embeddings'
 import { callLLM, parseJsonResponse } from '../../../../../../lib/llm'
@@ -63,8 +64,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   void prisma.$executeRaw`
     INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
     VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'LIBRARY_UPLOAD', NOW())
-  `.catch((error) => {
-    console.error('[contribution-event] library upload insert failed:', error)
+  `
+    .catch((error) => {
+      console.error('[contribution-event] library upload insert failed:', error)
+    })
+
+  void recordContributionEvent({
+    prisma,
+    projectId: id,
+    userId: user.id,
+    action: 'LIBRARY_UPLOAD',
+    logLabel: 'library upload insert',
   })
 
   // Background: index + summarize

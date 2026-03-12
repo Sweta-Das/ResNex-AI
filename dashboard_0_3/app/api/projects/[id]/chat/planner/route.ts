@@ -32,6 +32,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const result = await plannerAgent.run({ messages: [], context: { messages, projectContext }, language: user.language })
     return NextResponse.json({ tasks: result.metadata?.tasks || [], blockers: result.metadata?.blockers || [], next_steps: result.metadata?.next_steps || [], message_count: messages.length })
   } catch (err: any) {
-    return NextResponse.json({ error: `LLM unavailable: ${err.message}` }, { status: 502 })
+    const msg = err?.message || String(err) || 'Unknown error'
+    // Surface HF billing/usage failures as 402 so the client can handle it distinctly.
+    if (/\b402\b/.test(msg) || /Payment Required/i.test(msg) || /credits/i.test(msg)) {
+      return NextResponse.json(
+        {
+          error: 'LLM provider billing/usage issue',
+          details: msg,
+          hint: 'Try switching to a smaller HF_MODEL or enable HuggingFace Inference Providers credits.',
+        },
+        { status: 402 }
+      )
+    }
+    return NextResponse.json({ error: 'LLM unavailable', details: msg }, { status: 502 })
   }
 }

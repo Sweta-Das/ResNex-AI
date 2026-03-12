@@ -12,12 +12,13 @@ import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timest
 import { db } from '../../../lib/firebase'
 import { ModerationAlerts, useModerationAlertCount } from '../../../components/project/ModerationAlerts'
 import { ContributionHeatmap } from '../../../components/contributors/ContributionHeatmap'
+import { NormalizingPanel } from '../../../components/belonging/NormalizingPanel'
+import { GrowthTracker } from '../../../components/belonging/GrowthTracker'
 const TABS = (id: string) => [
   { label: 'Overview', href: `/project/${id}`, icon: '⬡' },
   { label: 'Chat', href: `/project/${id}/chat`, icon: '💬' },
   { label: 'Discover', href: `/project/${id}/discover`, icon: '🔍' },
   { label: 'Library', href: `/project/${id}/library`, icon: '📚' },
-  { label: 'Compare', href: `/project/${id}/compare`, icon: '⇄' },
   { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
   { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
   { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },
@@ -438,7 +439,7 @@ export default function ProjectDashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ project_id: id }),
     })
-    router.push(`/project/${id}/output`)
+    router.push(`/project/${id}/latex`)
   }
 
   if (loading) return (
@@ -507,6 +508,12 @@ export default function ProjectDashboard() {
                       </span>
                     )}
                   </button>
+                  <button
+                    onClick={() => router.push(`/project/${id}/admin`)}
+                    className="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors text-[#7a839a] hover:text-[#e8eaf0]"
+                  >
+                    Admin
+                  </button>
                 </div>
               )}
 
@@ -547,6 +554,8 @@ export default function ProjectDashboard() {
                 />
               )}
 
+              <ContributionHeatmap projectId={id} />
+
               {/* Contributorship log */}
               <ContributorshipTimeline logs={logs} />
               </>
@@ -582,6 +591,10 @@ export default function ProjectDashboard() {
                   ))}
                 </div>
               </Card>
+              <NormalizingPanel projectId={id} />
+
+              <GrowthTracker projectId={id} />
+
             </div>
           </div>
         </div>

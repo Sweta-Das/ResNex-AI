@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../../lib/auth'
+import { recordContributionEventWithThrottle } from '../../../../../../lib/contribution-events'
 import { prisma } from '../../../../../../lib/prisma'
 
 // GET /api/projects/[id]/sections/mine
@@ -80,6 +81,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   })().catch((error) => {
     console.error('[contribution-event] section edit insert failed:', error)
+  })
+
+  void recordContributionEventWithThrottle({
+    prisma,
+    projectId: id,
+    userId: user.id,
+    action: 'SECTION_EDIT',
+    logLabel: 'section edit insert',
+    dedupeWindowMs: 60_000,
   })
 
   return NextResponse.json(section)

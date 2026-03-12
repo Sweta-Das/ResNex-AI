@@ -116,30 +116,35 @@ export default function LoginPage() {
               <div id="clerk-captcha" />
               <form onSubmit={handleSendCode} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs text-[#7a839a] font-medium uppercase tracking-wider">
+                  <label htmlFor="login-email" className="text-xs text-[#7a839a] font-medium uppercase tracking-wider">
                     Email address
                   </label>
                   <input
+                    id="login-email"
                     type="email"
+                    autoComplete="email"
+                    aria-label="Email address"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="you@university.edu"
                     required
                     className="w-full bg-[#0a0c10] border border-[#252a38] rounded-lg text-[#e8eaf0]
-                      placeholder:text-[#3d4558] focus:outline-none focus:border-[#4f8ef7]
+                      placeholder:text-[#3d4558] focus:border-[#4f8ef7]
                       focus:ring-1 focus:ring-[#4f8ef7]/30 px-3 py-3 text-sm transition-all"
                   />
                 </div>
 
                 {error && (
-                  <p className="text-xs text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-lg px-3 py-2">
-                    {error}
+                  <p role="alert" aria-live="assertive" className="text-xs bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-lg px-3 py-2" style={{ color: 'var(--color-error-text)' }}>
+                    <span aria-hidden="true">✕ </span>{error}
                   </p>
                 )}
 
                 <button
                   type="submit"
                   disabled={loading || !email}
+                  aria-label={loading ? 'Sending code, please wait' : 'Send code'}
+                  aria-disabled={loading || !email}
                   className="w-full py-3 rounded-lg text-sm font-semibold text-white transition-all duration-150
                     disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   style={{
@@ -149,7 +154,7 @@ export default function LoginPage() {
                 >
                   {loading ? (
                     <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" className="animate-spin" fill="none">
+                      <svg width="16" height="16" viewBox="0 0 24 24" className="animate-spin" aria-hidden="true" fill="none">
                         <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/>
                         <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
                       </svg>
@@ -158,7 +163,7 @@ export default function LoginPage() {
                   ) : (
                     <>
                       Send code
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" strokeWidth="2.5">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                       </svg>
                     </>
@@ -174,7 +179,9 @@ export default function LoginPage() {
             <>
               <div className="flex items-center gap-2 mb-6">
                 <button
+                  type="button"
                   onClick={() => { setStep('email'); setCode(''); setError('') }}
+                  aria-label="Back to email"
                   className="text-[#7a839a] hover:text-[#e8eaf0] transition-colors"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -189,32 +196,41 @@ export default function LoginPage() {
 
               <form onSubmit={handleVerifyCode} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs text-[#7a839a] font-medium uppercase tracking-wider">
+                  <label htmlFor="login-otp" className="text-xs text-[#7a839a] font-medium uppercase tracking-wider">
                     6-digit code
                   </label>
                   <input
+                    id="login-otp"
                     type="text"
                     inputMode="numeric"
+                    autoComplete="one-time-code"
+                    aria-label="One-time passcode"
+                    aria-describedby="otp-hint"
                     value={code}
                     onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="000000"
                     required
                     autoFocus
                     className="w-full bg-[#0a0c10] border border-[#252a38] rounded-lg text-[#e8eaf0]
-                      placeholder:text-[#3d4558] focus:outline-none focus:border-[#4f8ef7]
+                      placeholder:text-[#3d4558] focus:border-[#4f8ef7]
                       focus:ring-1 focus:ring-[#4f8ef7]/30 px-3 py-3 text-sm tracking-[0.3em] transition-all text-center"
                   />
+                  <p id="otp-hint" className="sr-only">
+                    Enter the 6-digit code sent to your email address
+                  </p>
                 </div>
 
                 {error && (
-                  <p className="text-xs text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-lg px-3 py-2">
-                    {error}
+                  <p role="alert" aria-live="assertive" className="text-xs bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-lg px-3 py-2" style={{ color: 'var(--color-error-text)' }}>
+                    <span aria-hidden="true">✕ </span>{error}
                   </p>
                 )}
 
                 <button
                   type="submit"
                   disabled={loading || code.length < 6}
+                  aria-label={loading ? 'Verifying code, please wait' : 'Verify and sign in'}
+                  aria-disabled={loading || code.length < 6}
                   className="w-full py-3 rounded-lg text-sm font-semibold text-white transition-all duration-150
                     disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   style={{
@@ -224,7 +240,7 @@ export default function LoginPage() {
                 >
                   {loading ? (
                     <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" className="animate-spin" fill="none">
+                      <svg width="16" height="16" viewBox="0 0 24 24" className="animate-spin" aria-hidden="true" fill="none">
                         <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/>
                         <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
                       </svg>
@@ -233,7 +249,7 @@ export default function LoginPage() {
                   ) : (
                     <>
                       Verify & sign in
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" strokeWidth="2.5">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                       </svg>
                     </>

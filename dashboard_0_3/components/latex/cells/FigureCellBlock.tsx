@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { FigureCell } from '../../../lib/cell-types'
+import { sanitizeLatexAssetFileName } from '../../../lib/latex-assets'
 import { uploadFiles } from '../../../lib/uploadthingClient'
 
 interface Props {
@@ -21,7 +22,11 @@ export function FigureCellBlock({ cell, onChange, onFocus, onInfer, inferring }:
     setUploading(true)
     try {
       const [uploaded] = await uploadFiles('latexAsset', { files: [file] })
-      onChange({ ...cell, fileUrl: uploaded.url, fileName: `figures/${file.name}` })
+      onChange({
+        ...cell,
+        fileUrl: uploaded.url,
+        fileName: sanitizeLatexAssetFileName(`figures/${file.name}`),
+      })
     } catch (err: any) {
       alert(err?.message || 'Upload failed')
     } finally {

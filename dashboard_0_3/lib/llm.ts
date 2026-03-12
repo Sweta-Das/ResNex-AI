@@ -48,8 +48,8 @@ export async function callLLMVision(options: LLMVisionOptions): Promise<string> 
   if (provider === 'huggingface') {
     // HuggingFace vision: pass image URLs as inline image_url content blocks (OpenAI-compatible format)
     const hfModel = process.env.HF_MODEL || 'meta-llama/Meta-Llama-3.1-8B-Instruct'
-    const apiKey = process.env.HUGGINGFACE_API_KEY
-    if (!apiKey) throw new Error('HUGGINGFACE_API_KEY is not set')
+    const apiKey = process.env.HUGGINGFACE_KEY
+    if (!apiKey) throw new Error('HUGGINGFACE_KEY is not set')
 
     const userContent = [
       ...imageUrls.map((url) => ({ type: 'image_url', image_url: { url } })),
@@ -157,8 +157,9 @@ async function callHuggingFace(opts: {
   modelOverride?: string
 }): Promise<string> {
   const model = opts.modelOverride || process.env.HF_MODEL || 'mistralai/Mixtral-8x7B-Instruct-v0.1'
-  const apiKey = process.env.HUGGINGFACE_API_KEY
-  if (!apiKey) throw new Error('HUGGINGFACE_API_KEY is not set')
+  const apiKey = process.env.HUGGINGFACE_KEY
+  if (!apiKey) throw new Error('HUGGINGFACE_KEY is not set')
+  const keySuffix = apiKey.slice(-4) // safe for logs/debug
 
   const allMessages: LLMMessage[] = opts.system
     ? [{ role: 'system', content: opts.system }, ...opts.messages]
@@ -186,7 +187,15 @@ async function callHuggingFace(opts: {
   }
 
   if (!res.ok) {
-    throw new Error(`HuggingFace error ${res.status}: ${await res.text()}`)
+    const body = await res.text().catch(() => '')
+    // HF router uses 402 to signal Inference Providers usage/billing issues.
+    if (res.status === 402) {
+      throw new Error(
+        `HuggingFace router 402 (billing/usage) for model "${model}" (key …${keySuffix}). ` +
+          `Try a smaller HF_MODEL or enable Inference Providers credits. Details: ${body.slice(0, 300)}`
+      )
+    }
+    throw new Error(`HuggingFace error ${res.status} (model "${model}", key …${keySuffix}): ${body}`)
   }
 
   const data = await res.json()

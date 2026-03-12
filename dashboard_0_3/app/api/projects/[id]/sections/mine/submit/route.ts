@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../../../lib/auth'
+import { recordContributionEvent } from '../../../../../../../lib/contribution-events'
 import { prisma } from '../../../../../../../lib/prisma'
 import { moderateAndLog } from '../../../../../../../lib/moderation'
 
@@ -59,8 +60,17 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   void prisma.$executeRaw`
     INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
     VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'SECTION_SUBMIT', NOW())
-  `.catch((error) => {
-    console.error('[contribution-event] section submit insert failed:', error)
+  `
+    .catch((error) => {
+      console.error('[contribution-event] section submit insert failed:', error)
+    })
+
+  void recordContributionEvent({
+    prisma,
+    projectId: id,
+    userId: user.id,
+    action: 'SECTION_SUBMIT',
+    logLabel: 'section submit insert',
   })
 
   return NextResponse.json(updated)

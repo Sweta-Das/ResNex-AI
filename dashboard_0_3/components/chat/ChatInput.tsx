@@ -41,7 +41,7 @@ function FileTypeIcon({ type }: { type: FileType }) {
 }
 
 interface Props {
-  onSend: (message: string, attachments: Attachment[]) => Promise<void>
+  onSend: (message: string, attachments: Attachment[], isAnonymous: boolean) => Promise<void>
   onAgentAction: (message: string, action: string, attachments: Attachment[]) => Promise<void>
   sending?: boolean
   placeholder?: string
@@ -53,6 +53,7 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
   const [files, setFiles] = useState<AttachedFile[]>([])
   const [showPopover, setShowPopover] = useState(false)
   const [agentProcessing, setAgentProcessing] = useState(false)
+  const [isAnonymous, setIsAnonymous] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { openPanel } = useAgentStore()
@@ -134,7 +135,7 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
     setValue('')
     setFiles([])
     setShowPopover(false)
-    await onSend(msg, readyAttachments)
+    await onSend(msg, readyAttachments, isAnonymous)
   }
 
   async function handleAgentAction(action: string) {
@@ -205,8 +206,8 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={files.length >= MAX_FILES || isLoading || disabled}
-          title="Attach file · PNG, JPG, PDF, CSV · max 10MB · up to 3 files"
-          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+          aria-label="Attach a file — PNG, JPG, PDF or CSV, max 10MB, up to 3 files"
+          className="touch-target-expand w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
             bg-[#1a1f2e] border border-[#252a38] text-[#7a839a] hover:text-[#e8eaf0]
             hover:border-[#4f8ef7] transition-colors disabled:opacity-40"
         >
@@ -225,33 +226,70 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
 
         {/* Textarea */}
         <div className="flex-1 relative">
+          <label htmlFor="chat-input" className="sr-only">
+            Write a message to the project chat
+          </label>
           <textarea
             ref={inputRef}
+            id="chat-input"
+            aria-describedby="chat-input-hint"
             value={value}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder || 'Message the team… (type @agent for AI actions)'}
+            placeholder={isAnonymous ? 'Send anonymously — your name will be hidden…' : (placeholder || 'Message the team… (type @agent for AI actions)')}
             rows={1}
             disabled={disabled || isLoading}
-            className="w-full bg-[#1a1f2e] border border-[#252a38] rounded-2xl px-4 py-3 text-sm
-              text-[#e8eaf0] placeholder:text-[#3d4558] focus:outline-none focus:border-[#4f8ef7]
-              transition-all resize-none leading-normal disabled:opacity-50"
+            className={`w-full bg-[#1a1f2e] rounded-2xl px-4 py-3 text-sm
+              text-[#e8eaf0] placeholder:text-[#3d4558]
+              transition-all resize-none leading-normal disabled:opacity-50
+              ${isAnonymous
+                ? 'border border-[#7c3aed]/60 focus:border-[#7c3aed]'
+                : 'border border-[#252a38] focus:border-[#4f8ef7]'}`}
             style={{ minHeight: '44px', maxHeight: '120px' }}
           />
-          {hasAgent && (
+          <span id="chat-input-hint" className="sr-only">
+            Type @agent to ask the AI assistant. Enter sends, Shift+Enter for a new line.
+            {isAnonymous ? ' Anonymous mode is on — your name will be hidden from others.' : ''}
+          </span>
+          {hasAgent && !isAnonymous && (
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[#7c6af5] font-bold pointer-events-none">
               @agent
             </span>
           )}
         </div>
 
+        {/* Anonymous toggle */}
+        <button
+          type="button"
+          onClick={() => setIsAnonymous(v => !v)}
+          aria-pressed={isAnonymous}
+          aria-label={isAnonymous ? 'Anonymous mode on — click to send as yourself' : 'Send anonymously — click to hide your name'}
+          disabled={isLoading || disabled}
+          className={`touch-target-expand w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+            border transition-colors disabled:opacity-40
+            ${isAnonymous
+              ? 'bg-[#7c3aed]/20 border-[#7c3aed]/50 text-[#a78bfa]'
+              : 'bg-[#1a1f2e] border-[#252a38] text-[#7a839a] hover:text-[#e8eaf0] hover:border-[#7c3aed]/40'}`}
+        >
+          {/* Ghost / incognito icon */}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a7 7 0 0 1 7 7v4l1.5 2.5a1 1 0 0 1-.9 1.5H4.4a1 1 0 0 1-.9-1.5L5 13V9a7 7 0 0 1 7-7z"/>
+            <circle cx="9" cy="11" r="1" fill="currentColor" stroke="none"/>
+            <circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/>
+            <path d="M9 17c0 1.1.9 2 2 2h2a2 2 0 0 0 0-4h-2a2 2 0 0 0-2 2z"/>
+          </svg>
+        </button>
+
         {/* Send button */}
         <button
           type="button"
           onClick={handleSend}
           disabled={!canSend}
-          className="w-10 h-10 rounded-2xl bg-[#4f8ef7] hover:bg-[#3d7de8] disabled:opacity-40
-            flex items-center justify-center transition-all flex-shrink-0"
+          aria-label={isLoading || anyUploading ? 'Sending message' : isAnonymous ? 'Send anonymously' : 'Send message'}
+          aria-disabled={!canSend}
+          className={`touch-target-expand w-10 h-10 rounded-2xl disabled:opacity-40
+            flex items-center justify-center transition-all flex-shrink-0
+            ${isAnonymous ? 'bg-[#7c3aed] hover:bg-[#6d28d9]' : 'bg-[#4f8ef7] hover:bg-[#3d7de8]'}`}
         >
           {isLoading || anyUploading ? (
             <Spinner size={13} color="white" />
@@ -263,9 +301,14 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
         </button>
       </div>
 
-      {files.length > 0 && (
-        <p className="text-[10px] text-[#3d4558] px-1">
-          {files.length}/{MAX_FILES} files attached · type @agent to process with AI
+      {(files.length > 0 || isAnonymous) && (
+        <p className="text-[10px] px-1 flex items-center gap-2">
+          {files.length > 0 && (
+            <span className="text-[#3d4558]">{files.length}/{MAX_FILES} files attached · type @agent to process with AI</span>
+          )}
+          {isAnonymous && (
+            <span className="text-[#a78bfa]">● Anonymous mode — your name is hidden from others</span>
+          )}
         </p>
       )}
     </div>

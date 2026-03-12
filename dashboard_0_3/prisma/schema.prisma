@@ -77,6 +77,8 @@ model User {
   moderationLogs     ModerationLog[]
   adminProjects      Project[]
   contributionEvents ContributionEvent[]
+  milestoneAchievements MilestoneAchievement[]
+  reflectionEntries     ReflectionEntry[]
 }
 
 model Project {
@@ -110,6 +112,8 @@ model Project {
   longestStreak      Int      @default(0)
   lastStreakDate     DateTime?
   contributionEvents ContributionEvent[]
+  milestoneAchievements MilestoneAchievement[]
+  reflectionEntries     ReflectionEntry[]
 }
 
 model ContributionEvent {
@@ -131,6 +135,14 @@ model ProjectMember {
   assigned_subtopic String?
   section_status   SectionStatus @default(not_started)
   joined_at        DateTime      @default(now())
+  hasSeenWelcome   Boolean       @default(false)
+
+  // Growth tracker baseline (Feature 5) — recorded 7 days after join
+  growthBaselineLiterature  Int       @default(0)
+  growthBaselineWriting     Int       @default(0)
+  growthBaselineDiscussion  Int       @default(0)
+  growthBaselineCitations   Int       @default(0)
+  growthBaselineSetAt       DateTime?
 
   project Project @relation(fields: [project_id], references: [id])
   user    User    @relation(fields: [user_id], references: [id])
@@ -181,6 +193,7 @@ model ChatMessage {
   agentStatus   String?     // "pending" | "processed" | "added_to_latex"
   targetSection String?     // which LaTeX section this maps to
   attachments   Json        @default("[]")  // [{ url, type, fileName, size }]
+  isAnonymous   Boolean     @default(false) // sender identity hidden from other members
   created_at    DateTime    @default(now())
 
   project Project  @relation(fields: [project_id], references: [id])
@@ -367,4 +380,36 @@ model LatexFile {
 
   @@unique([projectId, fileName])
   @@map("latex_files")
+}
+
+// Feature 4 — Milestone Moment Toasts
+// NOTE: DB table already exists. Schema added here for Prisma client codegen.
+model MilestoneAchievement {
+  id         String   @id @default(cuid())
+  projectId  String
+  userId     String
+  milestone  String   // MilestoneType enum value
+  achievedAt DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([projectId, userId, milestone])
+  @@index([projectId, userId])
+}
+
+// Feature 6 — Private Reflection Space
+// NOTE: DB table already exists. Schema added here for Prisma client codegen.
+// PRIVACY: Reflections are user-private.
+// Never expose to other users, admins, or AI agents.
+model ReflectionEntry {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String
+  promptIndex Int
+  content     String   @db.Text
+  isShared    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([projectId, userId, createdAt])
 }

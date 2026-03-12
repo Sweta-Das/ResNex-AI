@@ -3,6 +3,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../../lib/auth'
+import { parseSectionDoc } from '../../../../../../lib/agents/latexConversionAgent'
+import type { FigureCell } from '../../../../../../lib/cell-types'
+import { normalizeLatexForCompile, sanitizeLatexAssetFileName } from '../../../../../../lib/latex-assets'
 import { prisma } from '../../../../../../lib/prisma'
 import { getVirtualCompileAssets } from '../../../../../../lib/latex-template-assets'
 
@@ -11,6 +14,36 @@ type Params = { params: Promise<{ id: string }> }
 function extractErrorLine(logs: string) {
   const errorMatch = logs.match(/^.*:(\d+):.*error/mi)
   return errorMatch ? parseInt(errorMatch[1], 10) : undefined
+}
+
+type CompileAsset = {
+  fileName: string
+  fileUrl: string
+}
+
+async function appendAssetFile(formData: FormData, fileName: string, fileUrl: string) {
+  let assetUrl: URL
+
+  try {
+    assetUrl = new URL(fileUrl)
+  } catch {
+    throw new Error(`Invalid asset URL for "${fileName}"`)
+  }
+
+  // Some asset providers keep raw spaces in the visible URL; normalize path segments before fetch.
+  assetUrl.pathname = assetUrl.pathname
+    .split('/')
+    .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
+    .join('/')
+
+  const assetRes = await fetch(assetUrl.toString())
+  if (!assetRes.ok) {
+    throw new Error(`Failed to download "${fileName}" (${assetRes.status})`)
+  }
+
+  const contentType = assetRes.headers.get('content-type') || 'application/octet-stream'
+  const assetBuffer = await assetRes.arrayBuffer()
+  formData.append('files[]', new Blob([assetBuffer], { type: contentType }), fileName)
 }
 
 export async function POST(_req: NextRequest, { params }: Params) {
@@ -60,13 +93,48 @@ export async function POST(_req: NextRequest, { params }: Params) {
         return /\.(tex|bib|sty|cls|bst|bbx|cbx)$/i.test(file.fileName)
       })
 
+    const fileAssets: CompileAsset[] = files
+      .filter((file) => file.type !== 'CODE' && file.fileUrl)
+      .map((file) => ({ fileName: file.fileName, fileUrl: file.fileUrl as string }))
+
+    const sectionFigureAssets: CompileAsset[] = files
+      .filter((file) => file.fileName.startsWith('sections/') && file.content)
+      .flatMap((file) =>
+        parseSectionDoc(file.content)
+          .filter((cell): cell is FigureCell => cell.type === 'figure' && !!cell.fileName && !!cell.fileUrl)
+          .map((cell) => ({ fileName: cell.fileName, fileUrl: cell.fileUrl }))
+      )
+
+    const assetFiles = [...fileAssets, ...sectionFigureAssets].filter(
+      (asset, index, all) =>
+        all.findIndex((candidate) => candidate.fileName === asset.fileName && candidate.fileUrl === asset.fileUrl) === index
+    )
+
+    const assetPathMap = new Map(assetFiles.map((asset) => [asset.fileName, sanitizeLatexAssetFileName(asset.fileName)]))
+
     for (const file of compileFiles) {
-      const content = file.fileName === mainFile.fileName ? compileReady.mainTex : (file.content ?? '')
-      formData.append('files[]', new Blob([content], { type: 'text/plain' }), file.fileName)
+      const originalContent = file.fileName === mainFile.fileName ? compileReady.mainTex : (file.content ?? '')
+      const rewrittenContent = normalizeLatexForCompile(originalContent, assetPathMap)
+      formData.append('files[]', new Blob([rewrittenContent], { type: 'text/plain' }), file.fileName)
     }
 
     for (const file of compileReady.files) {
-      formData.append('files[]', new Blob([file.content], { type: 'text/plain' }), file.fileName)
+      const rewrittenContent = normalizeLatexForCompile(file.content, assetPathMap)
+      formData.append('files[]', new Blob([rewrittenContent], { type: 'text/plain' }), file.fileName)
+    }
+
+    try {
+      await Promise.all(
+        assetFiles.map((file) =>
+          appendAssetFile(formData, assetPathMap.get(file.fileName) ?? file.fileName, file.fileUrl)
+        )
+      )
+    } catch (error: any) {
+      return NextResponse.json({
+        success: false,
+        pdfUrl: null,
+        logs: error?.message || 'Failed to prepare LaTeX asset files for compilation.',
+      })
     }
 
     let compileRes: Response
@@ -141,7 +209,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     return NextResponse.json({
       success: false,
       pdfUrl: null,
-      logs: `Compiler returned HTTP ${compileRes.status} (${contentType}).\n\nResponse preview:\n${rawBody.slice(0, 500)}`,
+      logs: `Compiler returned HTTP ${compileRes.status} (${contentType}).\n\nResponse preview:\n${rawBody.slice(0, 500)}\n\nCompile assets:\n${[...assetPathMap.entries()].map(([from, to]) => `${from} => ${to}`).join('\n') || '(none)'}`,
       errorLine,
     })
   } catch (err: any) {

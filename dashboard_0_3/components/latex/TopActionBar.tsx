@@ -20,11 +20,25 @@ export function TopActionBar({ projectId }: Props) {
     setSyncMsg(null)
     try {
       const res = await fetch(`/api/projects/${projectId}/latex/sync`, { method: 'POST' })
-      const data = await res.json()
+      const raw = await res.text()
+      let data: any = {}
+      try {
+        data = raw ? JSON.parse(raw) : {}
+      } catch {
+        throw new Error(`Sync failed (${res.status}): ${raw.slice(0, 300)}`)
+      }
       if (res.ok) {
         // Reload file list
         const filesRes = await fetch(`/api/projects/${projectId}/latex/files`)
-        if (filesRes.ok) setFiles(await filesRes.json())
+        if (filesRes.ok) {
+          const filesRaw = await filesRes.text()
+          try {
+            setFiles(filesRaw ? JSON.parse(filesRaw) : [])
+          } catch {
+            // Avoid crashing the toolbar if the server responds with non-JSON (e.g. dev error page).
+            setFiles([])
+          }
+        }
         setSyncMsg(`Synced ${data.sectionsIncluded} sections, ${data.papersIncluded} papers`)
       } else {
         setSyncMsg(data.error || 'Sync failed')

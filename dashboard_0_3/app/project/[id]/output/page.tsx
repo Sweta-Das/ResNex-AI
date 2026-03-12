@@ -52,8 +52,6 @@ export default function OutputPage() {
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [pdfIframeSrc, setPdfIframeSrc] = useState<string | null>(null)
-  const [pdfPage] = useState(1)
-  const [pdfZoom, setPdfZoom] = useState(110)
   const [runningBias, setRunningBias] = useState(false)
   const [runningVisual, setRunningVisual] = useState(false)
   const [activeSection, setActiveSection] = useState<OutputSection>('pdf')
@@ -61,20 +59,10 @@ export default function OutputPage() {
   const { success, error, toast } = useToast()
   const pdfUrl = output?.pdfUrl ?? output?.pdf_url ?? null
 
-  function buildPdfSrc(nextPage: number, nextZoom: number) {
-    if (!pdfUrl) return null
-    const base = String(pdfUrl).split('#')[0]
-    const clampedPage = Math.max(1, nextPage)
-    const clampedZoom = Math.max(50, Math.min(200, nextZoom))
-    return `${base}#page=${clampedPage}&zoom=${clampedZoom}`
-  }
-
-  // Keep iframe src in sync with current page/zoom.
+  // Keep iframe src in sync with the latest compiled URL.
   useEffect(() => {
-    if (!pdfUrl) return
-    const next = buildPdfSrc(pdfPage, pdfZoom)
-    if (next) setPdfIframeSrc(next)
-  }, [pdfUrl, pdfPage, pdfZoom])
+    setPdfIframeSrc(pdfUrl)
+  }, [pdfUrl])
 
   useEffect(() => {
     Promise.all([
@@ -143,7 +131,6 @@ export default function OutputPage() {
     { label: 'Chat', href: `/project/${id}/chat`, icon: '💬' },
     { label: 'Discover', href: `/project/${id}/discover`, icon: '🔍' },
     { label: 'Library', href: `/project/${id}/library`, icon: '📚' },
-    { label: 'Compare', href: `/project/${id}/compare`, icon: '⇄' },
     { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
     { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
     { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },
@@ -165,29 +152,9 @@ export default function OutputPage() {
           title="Final Output"
           subtitle="Compiled PDF, bias audit, and exports"
           tabs={tabs}
+          activeTab={`/project/${id}/output`}
           actions={
             <div className="flex gap-2">
-              {activeSection === 'pdf' && (
-                <div className="flex items-center gap-1 mr-1">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setPdfZoom((z) => Math.max(50, z - 10))}
-                    disabled={pdfZoom <= 50}
-                  >
-                    -
-                  </Button>
-                  <div className="text-[10px] font-mono text-[#7a839a] w-12 text-center">{pdfZoom}%</div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setPdfZoom((z) => Math.min(200, z + 10))}
-                    disabled={pdfZoom >= 200}
-                  >
-                    +
-                  </Button>
-                </div>
-              )}
               <Button size="sm" variant="secondary" onClick={exportPdf}>Export PDF</Button>
               <Button size="sm" onClick={() => router.push(`/project/${id}/latex`)}>LaTeX Editor →</Button>
             </div>
@@ -234,7 +201,7 @@ export default function OutputPage() {
                   ) : (
                     <div className="h-full min-h-0 bg-[#12151c] border border-[#252a38] rounded-xl overflow-hidden">
                       <iframe
-                        src={pdfIframeSrc ?? buildPdfSrc(pdfPage, pdfZoom) ?? pdfUrl}
+                        src={pdfIframeSrc ?? pdfUrl}
                         title="Full PDF"
                         className="w-full h-full border-none"
                       />
