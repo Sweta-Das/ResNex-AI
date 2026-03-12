@@ -154,6 +154,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           })
           agentReply = out.reply
         }
+      } else if (/^transfer(\s+\S+)?/i.test(command)) {
+        // /transfer [targetFile?] — takes the last AI message and pushes to LaTeX
+        const targetFileMatch = command.match(/^transfer\s+(\S+)/i)
+        const targetFile = targetFileMatch?.[1] || 'main.tex'
+        const lastAiMsg = agentMessages.filter((m) => m.role === 'assistant').slice(-1)[0]?.content || content
+        // Detect content type
+        const contentType =
+          lastAiMsg.includes('\\begin{equation}') || lastAiMsg.includes('$') ? 'equation'
+          : lastAiMsg.includes(',') && lastAiMsg.split('\n')[0].includes(',') ? 'table'
+          : 'text'
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/projects/${id}/latex/transfer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-internal': '1' },
+            body: JSON.stringify({ content: lastAiMsg, contentType, targetFile }),
+          })
+          if (res.ok) {
+            agentReply = `✓ Transferred to \`${targetFile}\` as ${contentType} block.`
+          } else {
+            agentReply = 'Transfer failed. Make sure you have a LaTeX file set up.'
+          }
+        } catch {
+          agentReply = 'Transfer failed — could not reach the LaTeX API.'
+        }
       } else {
         // Default: research-search agent with full context
         const out = await researchSearchAgent.run({

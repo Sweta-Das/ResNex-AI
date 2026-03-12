@@ -18,6 +18,7 @@ const TABS = (id: string) => [
   { label: 'Agents', href: `/project/${id}/agents` },
   { label: 'Review', href: `/project/${id}/review` },
   { label: 'Output', href: `/project/${id}/output` },
+    { label: 'LaTeX', href: `/project/${id}/latex` },
 ]
 
 type AgentTab = 'qa' | 'gaps' | 'writer' | 'planner' | 'summarizer' | 'research'

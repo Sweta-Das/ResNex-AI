@@ -19,6 +19,7 @@ const TABS = (id: string) => [
   { label: 'Agents', href: `/project/${id}/agents`, icon: '🤖' },
   { label: 'Review', href: `/project/${id}/review`, icon: '👁' },
   { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },
+  { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
 ]
 
 function MemberCard({ member, section, targetWords }: { member: ProjectMember; section?: any; targetWords?: number }) {

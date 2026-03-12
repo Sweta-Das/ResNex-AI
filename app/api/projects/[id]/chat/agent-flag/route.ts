@@ -73,7 +73,7 @@ export async function POST(req: NextRequest, { params }: Params) {
           projectId: id,
           userId: user.id,
           action: output.action,
-          result: output.result,
+          result: output.latex,
         },
         orderBy: { createdAt: 'desc' },
       })

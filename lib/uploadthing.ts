@@ -18,6 +18,20 @@ export const ourFileRouter = {
       return { uploadedBy: metadata.userId, url: file.url, name: file.name }
     }),
 
+  // LaTeX asset uploader — images and CSV/data files for the LaTeX editor
+  latexAsset: f({
+    image: { maxFileSize: '8MB', maxFileCount: 1 },
+    blob: { maxFileSize: '8MB', maxFileCount: 1 },
+  })
+    .middleware(async () => {
+      const user = await getAuthUser()
+      if (!user) throw new Error('Unauthorized')
+      return { userId: user.id }
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      return { uploadedBy: metadata.userId, url: file.url, name: file.name }
+    }),
+
   // Chat attachment uploader — images, PDFs, CSVs (blob covers csv/text files)
   chatAttachment: f({
     image: { maxFileSize: '8MB', maxFileCount: 3 },

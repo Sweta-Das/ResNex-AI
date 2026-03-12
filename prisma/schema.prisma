@@ -33,6 +33,12 @@ enum SectionStatus {
   approved
 }
 
+enum LatexFileType {
+  CODE
+  IMAGE
+  DATA
+}
+
 enum ContributionAction {
   created
   edited
@@ -96,6 +102,9 @@ model Project {
   dailyContributions DailyContribution[]
   contributorshipNew ContributorshipNew[]
   latexAssets        LatexAsset[]
+  latexFiles         LatexFile[]
+  pdfUrl             String?
+  latexTemplateId    String?
   teamStreak         Int      @default(0)
   longestStreak      Int      @default(0)
   lastStreakDate     DateTime?
@@ -328,4 +337,21 @@ model LatexAsset {
   project Project @relation(fields: [projectId], references: [id])
 
   @@map("latex_assets")
+}
+
+model LatexFile {
+  id        String        @id @default(uuid())
+  projectId String
+  fileName  String
+  type      LatexFileType
+  content   String?
+  fileUrl   String?
+  isMain    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, fileName])
+  @@map("latex_files")
 }
