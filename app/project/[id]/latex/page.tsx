@@ -13,6 +13,7 @@ import { TopActionBar } from '../../../../components/latex/TopActionBar'
 import { ConflictBanner } from '../../../../components/latex/ConflictBanner'
 import { WritingProgress } from '../../../../components/latex/WritingProgress'
 import { useLatexStore } from '../../../../store/latexStore'
+import { ToastProvider } from '../../../../components/ui'
 
 export default function LatexPage() {
   const params = useParams()
@@ -85,47 +86,46 @@ export default function LatexPage() {
   const activeFile = files.find((f) => f.id === activeFileId)
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0c10] overflow-hidden">
-      <PageHeader title="LaTeX Editor" tabs={tabs} activeTab="LaTeX" />
-      <TopActionBar projectId={id} />
-      {conflict && <ConflictBanner userName={conflict.userName} fileName={conflict.fileName} />}
+    <>
+      <ToastProvider />
+      <div className="flex flex-col h-screen bg-[#0a0c10] overflow-hidden">
+        <PageHeader title="LaTeX Editor" tabs={tabs} activeTab="LaTeX" />
+        <TopActionBar projectId={id} />
+        {conflict && <ConflictBanner userName={conflict.userName} fileName={conflict.fileName} />}
 
-      {/* Three-column IDE */}
-      <div className="flex-1 min-h-0 flex flex-row">
-        {/* File Tree — fixed 240px */}
-        <div className="w-60 flex-shrink-0 h-full overflow-hidden">
-          <FileTree projectId={id} onRefresh={() => {
-            fetch(`/api/projects/${id}/latex/files`)
-              .then((r) => r.json())
-              .then((data) => { if (Array.isArray(data)) setFiles(data) })
-          }} />
-        </div>
-
-        <div className="w-px bg-[#1a1f2e] flex-shrink-0" />
-
-        {/* Editor panel — CellEditor for .json sections, Monaco for .tex/.bib */}
-        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
-          {activeFile?.fileName.startsWith('sections/') && activeFile.fileName.endsWith('.json') ? (
-            <CellEditor file={activeFile} projectId={id} />
-          ) : (
-            <MonacoEditor
-              projectId={id}
-              onFocus={emitEditing}
-              onBlur={emitIdle}
-            />
-          )}
-        </div>
-
-        <div className="w-px bg-[#1a1f2e] flex-shrink-0" />
-
-        {/* PDF Preview + Writing Progress — fixed 400px */}
-        <div className="w-[400px] flex-shrink-0 h-full overflow-hidden flex flex-col">
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <PdfPreview projectId={id} />
+        <div className="flex-1 min-h-0 flex flex-row">
+          <div className="w-60 flex-shrink-0 h-full overflow-hidden">
+            <FileTree projectId={id} onRefresh={() => {
+              fetch(`/api/projects/${id}/latex/files`)
+                .then((r) => r.json())
+                .then((data) => { if (Array.isArray(data)) setFiles(data) })
+            }} />
           </div>
-          <WritingProgress projectId={id} />
+
+          <div className="w-px bg-[#1a1f2e] flex-shrink-0" />
+
+          <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
+            {activeFile?.fileName.startsWith('sections/') && activeFile.fileName.endsWith('.json') ? (
+              <CellEditor file={activeFile} projectId={id} />
+            ) : (
+              <MonacoEditor
+                projectId={id}
+                onFocus={emitEditing}
+                onBlur={emitIdle}
+              />
+            )}
+          </div>
+
+          <div className="w-px bg-[#1a1f2e] flex-shrink-0" />
+
+          <div className="w-[400px] flex-shrink-0 h-full overflow-hidden flex flex-col">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <PdfPreview projectId={id} />
+            </div>
+            <WritingProgress projectId={id} />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

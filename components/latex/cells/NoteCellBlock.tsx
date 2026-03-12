@@ -1,14 +1,17 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import { NoteCell } from '../../../lib/cell-types'
+import { CellAIFillButton } from './CellAIFillButton'
 
 interface Props {
   cell: NoteCell
   onChange: (updated: NoteCell) => void
   onFocus: () => void
+  onAutofill: () => void
+  autofilling?: boolean
 }
 
-export function NoteCellBlock({ cell, onChange, onFocus }: Props) {
+export function NoteCellBlock({ cell, onChange, onFocus, onAutofill, autofilling = false }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -23,6 +26,9 @@ export function NoteCellBlock({ cell, onChange, onFocus }: Props) {
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-[10px]">🗒</span>
         <span className="text-[9px] font-bold text-[#b45309] uppercase tracking-wider">Private Note — not included in PDF</span>
+        <div className="ml-auto">
+          <CellAIFillButton loading={autofilling} onClick={onAutofill} />
+        </div>
       </div>
       <textarea
         ref={ref}

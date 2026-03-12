@@ -1,14 +1,17 @@
 'use client'
 import { useState } from 'react'
 import { CitationCell } from '../../../lib/cell-types'
+import { CellAIFillButton } from './CellAIFillButton'
 
 interface Props {
   cell: CitationCell
   onChange: (updated: CitationCell) => void
   onFocus: () => void
+  onAutofill: () => void
+  autofilling?: boolean
 }
 
-export function CitationCellBlock({ cell, onChange, onFocus }: Props) {
+export function CitationCellBlock({ cell, onChange, onFocus, onAutofill, autofilling = false }: Props) {
   const [draft, setDraft] = useState('')
 
   function addKey() {
@@ -24,6 +27,9 @@ export function CitationCellBlock({ cell, onChange, onFocus }: Props) {
 
   return (
     <div className="space-y-2" onClick={onFocus}>
+      <div className="flex items-center justify-end">
+        <CellAIFillButton loading={autofilling} onClick={onAutofill} />
+      </div>
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[12px]">📚</span>
         {cell.keys.map((k) => (

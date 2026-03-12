@@ -1,15 +1,21 @@
 'use client'
 import { EquationCell } from '../../../lib/cell-types'
+import { CellAIFillButton } from './CellAIFillButton'
 
 interface Props {
   cell: EquationCell
   onChange: (updated: EquationCell) => void
   onFocus: () => void
+  onAutofill: () => void
+  autofilling?: boolean
 }
 
-export function EquationCellBlock({ cell, onChange, onFocus }: Props) {
+export function EquationCellBlock({ cell, onChange, onFocus, onAutofill, autofilling = false }: Props) {
   return (
     <div className="space-y-1.5" onClick={onFocus}>
+      <div className="flex items-center justify-end">
+        <CellAIFillButton loading={autofilling} onClick={onAutofill} />
+      </div>
       <div className="flex items-center gap-2 bg-[#0d1018] rounded-lg px-3 py-2 border border-[#252a38]">
         <span className="text-[#7c6af5] font-bold text-sm flex-shrink-0">∑</span>
         <input

@@ -13,6 +13,7 @@ import { TableCellBlock } from './cells/TableCellBlock'
 import { EquationCellBlock } from './cells/EquationCellBlock'
 import { NoteCellBlock } from './cells/NoteCellBlock'
 import { CitationCellBlock } from './cells/CitationCellBlock'
+import { useToast } from '../ui'
 
 interface Props {
   file: LatexFile
@@ -35,9 +36,11 @@ function wordCount(cells: Cell[]): number {
 
 export function CellEditor({ file, projectId }: Props) {
   const { updateLocalContent, markSaved } = useLatexStore()
+  const { error, success } = useToast()
   const [cells, setCells] = useState<Cell[]>([])
   const [activeCellId, setActiveCellId] = useState<string | null>(null)
   const [inferringId, setInferringId] = useState<string | null>(null)
+  const [autofillingId, setAutofillingId] = useState<string | null>(null)
   const [suggesting, setSuggesting] = useState(false)
   const [suggestMode, setSuggestMode] = useState<'fill' | 'append' | null>(null)
   const [showSuggestMenu, setShowSuggestMenu] = useState(false)
@@ -163,6 +166,71 @@ export function CellEditor({ file, projectId }: Props) {
     }
   }
 
+  async function handleAutofill(cell: Cell) {
+    if (!['text', 'heading', 'note', 'equation', 'citation'].includes(cell.type)) return
+
+    setAutofillingId(cell.id)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/latex/autofill`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionFileName: file.fileName,
+          cellId: cell.id,
+          cellType: cell.type,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        error(data.error || 'AI fill failed')
+        return
+      }
+
+      const { result } = await res.json()
+      if (!result || typeof result !== 'object') {
+        error('AI fill returned no usable result')
+        return
+      }
+
+      switch (cell.type) {
+        case 'text':
+        case 'heading':
+        case 'note':
+          if (typeof result.content === 'string' && result.content.trim()) {
+            updateCell({ ...cell, content: result.content })
+            success('Cell filled with AI')
+          } else {
+            error('AI fill returned empty content')
+          }
+          break
+        case 'equation':
+          if (typeof result.formula === 'string' && result.formula.trim()) {
+            updateCell({ ...cell, formula: result.formula, label: result.label || undefined })
+            success('Equation filled with AI')
+          } else {
+            error('AI fill returned empty equation content')
+          }
+          break
+        case 'citation':
+          if (Array.isArray(result.keys) || typeof result.context === 'string') {
+            updateCell({
+              ...cell,
+              keys: Array.isArray(result.keys) ? result.keys.filter(Boolean) : cell.keys,
+              context: typeof result.context === 'string' ? result.context : cell.context,
+            })
+            success('Citation suggestions added')
+          } else {
+            error('AI fill returned no citation data')
+          }
+          break
+      }
+    } catch {
+      error('AI fill failed')
+    } finally {
+      setAutofillingId(null)
+    }
+  }
+
   const label = sectionLabel(file.fileName)
   const words = wordCount(cells)
 
@@ -260,6 +328,8 @@ export function CellEditor({ file, projectId }: Props) {
                     onChange={updateCell}
                     isActive={isActive}
                     onFocus={() => setActiveCellId(cell.id)}
+                    onAutofill={() => handleAutofill(cell)}
+                    autofilling={autofillingId === cell.id}
                   />
                 )}
                 {cell.type === 'heading' && (
@@ -267,6 +337,8 @@ export function CellEditor({ file, projectId }: Props) {
                     cell={cell}
                     onChange={updateCell}
                     onFocus={() => setActiveCellId(cell.id)}
+                    onAutofill={() => handleAutofill(cell)}
+                    autofilling={autofillingId === cell.id}
                   />
                 )}
                 {cell.type === 'figure' && (
@@ -292,6 +364,8 @@ export function CellEditor({ file, projectId }: Props) {
                     cell={cell}
                     onChange={updateCell}
                     onFocus={() => setActiveCellId(cell.id)}
+                    onAutofill={() => handleAutofill(cell)}
+                    autofilling={autofillingId === cell.id}
                   />
                 )}
                 {cell.type === 'note' && (
@@ -299,6 +373,8 @@ export function CellEditor({ file, projectId }: Props) {
                     cell={cell}
                     onChange={updateCell}
                     onFocus={() => setActiveCellId(cell.id)}
+                    onAutofill={() => handleAutofill(cell)}
+                    autofilling={autofillingId === cell.id}
                   />
                 )}
                 {cell.type === 'citation' && (
@@ -306,6 +382,8 @@ export function CellEditor({ file, projectId }: Props) {
                     cell={cell}
                     onChange={updateCell}
                     onFocus={() => setActiveCellId(cell.id)}
+                    onAutofill={() => handleAutofill(cell)}
+                    autofilling={autofillingId === cell.id}
                   />
                 )}
               </div>
