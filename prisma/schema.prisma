@@ -193,6 +193,7 @@ model ChatMessage {
   agentStatus   String?     // "pending" | "processed" | "added_to_latex"
   targetSection String?     // which LaTeX section this maps to
   attachments   Json        @default("[]")  // [{ url, type, fileName, size }]
+  isAnonymous   Boolean     @default(false) // sender identity hidden from other members
   created_at    DateTime    @default(now())
 
   project Project  @relation(fields: [project_id], references: [id])

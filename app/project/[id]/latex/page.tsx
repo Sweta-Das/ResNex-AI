@@ -131,12 +131,15 @@ export default function LatexPage() {
         </div>
 
         <div className="flex-1 min-h-0 flex flex-row">
-          <div className={`w-60 flex-shrink-0 h-full overflow-hidden ${activePane !== 'files' ? 'hidden md:flex md:flex-col' : ''}`}>
-            <FileTree projectId={id} onRefresh={() => {
-              fetch(`/api/projects/${id}/latex/files`)
-                .then((r) => r.json())
-                .then((data) => { if (Array.isArray(data)) setFiles(data) })
-            }} />
+          <div className={`w-60 flex-shrink-0 h-full flex flex-col overflow-hidden ${activePane !== 'files' ? 'hidden md:flex md:flex-col' : ''}`}>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <FileTree projectId={id} onRefresh={() => {
+                fetch(`/api/projects/${id}/latex/files`)
+                  .then((r) => r.json())
+                  .then((data) => { if (Array.isArray(data)) setFiles(data) })
+              }} />
+            </div>
+            <WritingProgress projectId={id} />
           </div>
 
           <div className="w-px bg-[#1a1f2e] flex-shrink-0 hidden md:block" />
@@ -156,10 +159,7 @@ export default function LatexPage() {
           <div className="w-px bg-[#1a1f2e] flex-shrink-0 hidden md:block" />
 
           <div className={`w-[400px] flex-shrink-0 h-full overflow-hidden flex flex-col ${activePane !== 'preview' ? 'hidden md:flex' : ''}`}>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <PdfPreview projectId={id} />
-            </div>
-            <WritingProgress projectId={id} />
+            <PdfPreview projectId={id} />
           </div>
         </div>
       </div>

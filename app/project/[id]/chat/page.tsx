@@ -15,11 +15,12 @@ import { useAgentStore } from '../../../../store/agentStore'
 interface Msg {
   id: string
   content: string
-  userId: string
+  userId: string | null
   userFullName: string
   userAvatarUrl?: string
   createdAt: Date
   attachments?: Attachment[]
+  isAnonymous?: boolean
 }
 
 export default function ChatPage() {
@@ -51,11 +52,12 @@ export default function ChatPage() {
         setMessages(msgs.map(m => ({
           id: m.id,
           content: m.content,
-          userId: m.user_id,
-          userFullName: m.user?.full_name || 'Unknown',
-          userAvatarUrl: m.user?.avatar_url,
+          userId: m.user_id ?? null,
+          userFullName: m.isAnonymous && !m.user_id ? 'Anonymous' : (m.user?.full_name || 'Unknown'),
+          userAvatarUrl: m.isAnonymous && !m.user_id ? undefined : m.user?.avatar_url,
           createdAt: new Date(m.created_at),
           attachments: Array.isArray(m.attachments) ? m.attachments : [],
+          isAnonymous: !!m.isAnonymous,
         })))
         loadTimeRef.current = new Date()
       })
@@ -80,10 +82,11 @@ export default function ChatPage() {
             const msg: Msg = {
               id: change.doc.id,
               content: d.content,
-              userId: d.userId,
-              userFullName: d.userFullName,
-              userAvatarUrl: d.userAvatarUrl,
+              userId: d.isAnonymous ? null : d.userId,
+              userFullName: d.isAnonymous ? 'Anonymous' : d.userFullName,
+              userAvatarUrl: d.isAnonymous ? undefined : d.userAvatarUrl,
               createdAt,
+              isAnonymous: !!d.isAnonymous,
             }
             setMessages(prev => {
               if (prev.some(m => m.id === msg.id)) return prev
@@ -101,7 +104,7 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  async function sendMessageContent(content: string, attachments: Attachment[] = []) {
+  async function sendMessageContent(content: string, attachments: Attachment[] = [], isAnonymous = false) {
     if (!content.trim() && attachments.length === 0) return
     if (sending || !user) return
     setSending(true)
@@ -110,7 +113,7 @@ export default function ChatPage() {
       const res = await fetch(`/api/projects/${id}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, attachments }),
+        body: JSON.stringify({ content, attachments, isAnonymous }),
       })
       if (res.status === 422) {
         const data = await res.json()
@@ -121,22 +124,26 @@ export default function ChatPage() {
 
       const saved = await res.json()
 
+      // Write to Firestore for real-time delivery — mask identity when anonymous
       await addDoc(collection(db, 'projects', id, 'messages'), {
         content,
         attachments,
-        userId: user.id,
-        userFullName: user.fullName || user.firstName || 'Unknown',
-        userAvatarUrl: user.imageUrl || null,
+        isAnonymous,
+        userId: isAnonymous ? null : user.id,
+        userFullName: isAnonymous ? 'Anonymous' : (user.fullName || user.firstName || 'Unknown'),
+        userAvatarUrl: isAnonymous ? null : (user.imageUrl || null),
         createdAt: serverTimestamp(),
       })
 
+      // The sender always sees their own message — with an anonymous indicator if sent anon
       setMessages(prev => [...prev, {
         id: saved.id,
         content,
         attachments,
-        userId: user.id,
-        userFullName: user.fullName || user.firstName || 'Unknown',
-        userAvatarUrl: user.imageUrl,
+        isAnonymous,
+        userId: user.id,  // sender can identify their own message locally
+        userFullName: isAnonymous ? 'You (anonymous)' : (user.fullName || user.firstName || 'Unknown'),
+        userAvatarUrl: isAnonymous ? undefined : user.imageUrl,
         createdAt: new Date(),
       }])
     } catch { error("Couldn't send — your message is still here. Try again.") }
@@ -227,22 +234,47 @@ export default function ChatPage() {
               ) : (
                 messages.map((msg) => {
                   const isMe = msg.userId === user?.id
+                  const anonOther = msg.isAnonymous && !isMe
+                  const displayName = msg.userFullName
                   return (
                     <div
                       key={msg.id}
                       className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}
-                      aria-label={`${isMe ? 'You' : msg.userFullName}: ${msg.content}`}
+                      aria-label={`${isMe ? 'You' : displayName}: ${msg.content}`}
                     >
-                      <Avatar name={msg.userFullName} src={msg.userAvatarUrl} size={32} className="flex-shrink-0" />
+                      {/* Avatar — ghost placeholder for anonymous-from-others */}
+                      {anonOther ? (
+                        <div
+                          aria-hidden="true"
+                          className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-[#252a38] border border-[#3d4558]"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3d4558" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2a7 7 0 0 1 7 7v4l1.5 2.5a1 1 0 0 1-.9 1.5H4.4a1 1 0 0 1-.9-1.5L5 13V9a7 7 0 0 1 7-7z"/>
+                            <circle cx="9" cy="11" r="1" fill="#3d4558" stroke="none"/>
+                            <circle cx="15" cy="11" r="1" fill="#3d4558" stroke="none"/>
+                          </svg>
+                        </div>
+                      ) : (
+                        <Avatar name={displayName} src={msg.userAvatarUrl} size={32} className="flex-shrink-0" />
+                      )}
                       <div className={`max-w-[70%] flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
                         <div className="flex items-center gap-2">
-                          {!isMe && <p className="text-xs font-medium text-[#7a839a]">{msg.userFullName}</p>}
+                          {!isMe && (
+                            <p className="text-xs font-medium text-[#7a839a]">
+                              {anonOther ? 'Anonymous' : displayName}
+                            </p>
+                          )}
+                          {msg.isAnonymous && isMe && (
+                            <span className="text-[9px] text-[#a78bfa] bg-[#7c3aed]/15 border border-[#7c3aed]/30 px-1.5 py-0.5 rounded-full font-medium">
+                              anonymous
+                            </span>
+                          )}
                           <p className="text-[10px] text-[#3d4558]">
                             {msg.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                         <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isMe
-                          ? 'bg-[#4f8ef7] text-white rounded-tr-sm'
+                          ? msg.isAnonymous ? 'bg-[#7c3aed] text-white rounded-tr-sm' : 'bg-[#4f8ef7] text-white rounded-tr-sm'
                           : 'bg-[#1a1f2e] text-[#c8cad0] rounded-tl-sm'}`}>
                           {msg.content}
                         </div>

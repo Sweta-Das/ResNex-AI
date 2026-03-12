@@ -25,13 +25,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     where: { project_id: id, context: 'group_chat' },
     select: {
       id: true, content: true, role: true, created_at: true, attachments: true,
+      isAnonymous: true,
       user_id: true, user: { select: { id: true, full_name: true, avatar_url: true } },
     },
     orderBy: { created_at: 'desc' },
     take: 50,
   })
 
-  return NextResponse.json(messages.reverse())
+  // Mask sender identity for anonymous messages the current user did not write
+  const masked = messages.reverse().map((m) => {
+    if (m.isAnonymous && m.user_id !== user.id) {
+      return { ...m, user_id: null, user: null }
+    }
+    return m
+  })
+
+  return NextResponse.json(masked)
 }
 
 // POST /api/projects/[id]/chat — send message with moderation gate
@@ -47,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!member) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { content, messageType, attachments = [] } = body
+  const { content, messageType, attachments = [], isAnonymous = false } = body
 
   if (!content?.trim() && attachments.length === 0) {
     return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 })
@@ -98,6 +107,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       context: 'group_chat',
       messageType: messageType || (attachments.length > 0 ? 'file' : 'text'),
       attachments,
+      isAnonymous: !!isAnonymous,
     },
     include: { user: { select: { id: true, full_name: true, avatar_url: true } } },
   })
