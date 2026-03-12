@@ -247,12 +247,13 @@ export default function DashboardPage() {
   const [myRoles, setMyRoles] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    if (!isLoaded) return
     fetchProjects()
     // Check if profile needs completion
     fetch('/api/user').then(r => r.ok ? r.json() : null).then(u => {
       if (u && !u.affiliation) setShowProfile(true)
     }).catch(() => {})
-  }, [])
+  }, [isLoaded])
 
   async function fetchProjects() {
     try {

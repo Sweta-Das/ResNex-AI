@@ -23,11 +23,19 @@ export async function GET() {
       orderBy: { joined_at: 'desc' },
     })
 
-    const projects = memberships.map((m) => ({
-      ...m.project,
-      myRole: m.role,
-      myStatus: m.section_status,
-    }))
+    // Deduplicate by project id — guards against duplicate ProjectMember rows
+    const seen = new Set<string>()
+    const projects = memberships
+      .filter((m) => {
+        if (seen.has(m.project_id)) return false
+        seen.add(m.project_id)
+        return true
+      })
+      .map((m) => ({
+        ...m.project,
+        myRole: m.role,
+        myStatus: m.section_status,
+      }))
 
     return NextResponse.json(projects)
   } catch (err: any) {
