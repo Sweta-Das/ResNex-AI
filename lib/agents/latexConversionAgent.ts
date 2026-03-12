@@ -4,6 +4,7 @@
 
 import { callLLM } from '../llm'
 import { Cell, SectionDoc } from '../cell-types'
+import { toLatexGraphicPath } from '../latex-assets'
 import { LatexTemplate } from '../latex-templates'
 
 // ─── Public API ─────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ export async function cellToLatex(cell: Cell, sectionName: string): Promise<stri
       return [
         '\\begin{figure}[h]',
         '\\centering',
-        `\\includegraphics[width=0.9\\linewidth]{${cell.fileName}}`,
+        `\\includegraphics[width=0.9\\linewidth]{${toLatexGraphicPath(cell.fileName)}}`,
         `\\caption{${cap}}`,
         `\\label{${label}}`,
         '\\end{figure}',

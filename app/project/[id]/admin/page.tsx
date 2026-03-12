@@ -90,7 +90,7 @@ export default function AdminPage() {
           title="Admin Panel"
           subtitle="Manage members, subtopics, and project settings"
           tabs={tabs}
-          activeTab={tabs[10].href}
+          activeTab={`/project/${id}/admin`}
         />
 
         <div className="flex-1 overflow-y-auto p-8 bg-[#0a0c10]">

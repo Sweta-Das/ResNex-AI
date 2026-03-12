@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../../lib/auth'
+import { sanitizeLatexAssetFileName } from '../../../../../../lib/latex-assets'
 import { prisma } from '../../../../../../lib/prisma'
 
 type Params = { params: Promise<{ id: string }> }
@@ -47,12 +48,14 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'fileUrl is required for IMAGE and DATA files' }, { status: 400 })
   }
 
+  const normalizedFileName = type === 'CODE' ? fileName : sanitizeLatexAssetFileName(fileName)
+
   // Check unique fileName within project
   const existing = await prisma.latexFile.findUnique({
-    where: { projectId_fileName: { projectId: id, fileName } },
+    where: { projectId_fileName: { projectId: id, fileName: normalizedFileName } },
   })
   if (existing) {
-    return NextResponse.json({ error: `A file named "${fileName}" already exists in this project` }, { status: 409 })
+    return NextResponse.json({ error: `A file named "${normalizedFileName}" already exists in this project` }, { status: 409 })
   }
 
   // If setting as main, unset any existing main file
@@ -66,7 +69,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const file = await prisma.latexFile.create({
     data: {
       projectId: id,
-      fileName,
+      fileName: normalizedFileName,
       type,
       content: type === 'CODE' ? (content ?? '') : null,
       fileUrl: fileUrl ?? null,

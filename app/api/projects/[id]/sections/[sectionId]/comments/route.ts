@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getAuthUser } from '../../../../../../../lib/auth'
+import { recordContributionEvent } from '../../../../../../../lib/contribution-events'
 import { prisma } from '../../../../../../../lib/prisma'
 import { moderateAndLog } from '../../../../../../../lib/moderation'
 
@@ -46,11 +47,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     include: { user: { select: { id: true, full_name: true, avatar_url: true } } },
   })
 
-  void prisma.$executeRaw`
-    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
-    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'COMMENT_LEFT', NOW())
-  `.catch((error) => {
-    console.error('[contribution-event] comment insert failed:', error)
+  void recordContributionEvent({
+    prisma,
+    projectId: id,
+    userId: user.id,
+    action: 'COMMENT_LEFT',
+    logLabel: 'comment insert',
   })
 
   return NextResponse.json({ ...comment, content })

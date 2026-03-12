@@ -3,6 +3,7 @@
 
 import { useRef } from 'react'
 import { useLatexStore, LatexFile } from '../../store/latexStore'
+import { sanitizeLatexAssetFileName } from '../../lib/latex-assets'
 import { FileTreeItem } from './FileTreeItem'
 import { uploadFiles } from '../../lib/uploadthingClient'
 
@@ -58,11 +59,12 @@ export function FileTree({ projectId, onRefresh }: Props) {
     try {
       const [uploaded] = await uploadFiles('latexAsset', { files: [file] })
       const url = uploaded.url
+      const safeFileName = sanitizeLatexAssetFileName(`figures/${file.name}`)
 
       const res = await fetch(`/api/projects/${projectId}/latex/files`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: `figures/${file.name}`, type: fileType, fileUrl: url }),
+        body: JSON.stringify({ fileName: safeFileName, type: fileType, fileUrl: url }),
       })
       if (res.ok) {
         const created: LatexFile = await res.json()

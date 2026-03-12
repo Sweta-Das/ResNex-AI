@@ -4,6 +4,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../../../../lib/auth'
+import { recordContributionEvent } from '../../../../../../../lib/contribution-events'
+import { sanitizeLatexAssetFileName } from '../../../../../../../lib/latex-assets'
 import { prisma } from '../../../../../../../lib/prisma'
 
 type Params = { params: Promise<{ id: string; fileId: string }> }
@@ -20,14 +22,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!file) return NextResponse.json({ error: 'File not found' }, { status: 404 })
 
   const { content, fileName, isMain } = await req.json()
+  const normalizedFileName = fileName === undefined
+    ? undefined
+    : file.type === 'CODE'
+      ? fileName
+      : sanitizeLatexAssetFileName(fileName)
 
   // If renaming, check uniqueness
-  if (fileName && fileName !== file.fileName) {
+  if (normalizedFileName && normalizedFileName !== file.fileName) {
     const conflict = await prisma.latexFile.findUnique({
-      where: { projectId_fileName: { projectId: id, fileName } },
+      where: { projectId_fileName: { projectId: id, fileName: normalizedFileName } },
     })
     if (conflict) {
-      return NextResponse.json({ error: `A file named "${fileName}" already exists` }, { status: 409 })
+      return NextResponse.json({ error: `A file named "${normalizedFileName}" already exists` }, { status: 409 })
     }
   }
 
@@ -43,16 +50,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     where: { id: fileId },
     data: {
       ...(content !== undefined && { content }),
-      ...(fileName !== undefined && { fileName }),
+      ...(normalizedFileName !== undefined && { fileName: normalizedFileName }),
       ...(isMain !== undefined && { isMain }),
     },
   })
 
-  void prisma.$executeRaw`
-    INSERT INTO "ContributionEvent" ("id", "projectId", "userId", "action", "createdAt")
-    VALUES (md5(random()::text || clock_timestamp()::text), ${id}, ${user.id}, 'LATEX_EDIT', NOW())
-  `.catch((error) => {
-    console.error('[contribution-event] latex edit insert failed:', error)
+  void recordContributionEvent({
+    prisma,
+    projectId: id,
+    userId: user.id,
+    action: 'LATEX_EDIT',
+    logLabel: 'latex edit insert',
   })
 
   // Socket event latex_file_updated is emitted client-side after this response

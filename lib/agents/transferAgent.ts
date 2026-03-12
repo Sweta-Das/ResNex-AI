@@ -1,6 +1,7 @@
 // lib/agents/transferAgent.ts — converts content to LaTeX and pushes to file tree
 
 import { Agent, AgentInput, AgentOutput } from './types'
+import { toLatexGraphicPath } from '../latex-assets'
 import { callLLM } from '../llm'
 
 export interface TransferInput {
@@ -35,7 +36,7 @@ function imageToLatex(fileUrl: string, fileName: string, targetSection?: string)
 
   return `\\begin{figure}[htbp]
   \\centering
-  \\includegraphics[width=0.8\\textwidth]{figures/${fileName}}
+  \\includegraphics[width=0.8\\textwidth]{${toLatexGraphicPath(`figures/${fileName}`)}}
   \\caption{${caption}}
   \\label{${label}}
 \\end{figure}\n`
