@@ -67,6 +67,37 @@ export function Sidebar({ projects, loading, selectedId, onSelect, onCreateProje
         </div>
       </div>
 
+      {/* My Personal Space */}
+      <div className="px-1.5 pt-3 pb-1 flex-shrink-0">
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard')}
+          title={expanded ? undefined : 'My Personal Space'}
+          className="w-full text-left rounded-lg transition-all duration-150 group flex items-center gap-2.5"
+          style={{ padding: expanded ? '10px 12px' : '6px' }}
+        >
+          <div
+            className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center"
+            style={{ background: 'rgba(124,106,245,0.15)', minWidth: 24 }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7c6af5" strokeWidth="2.5">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <span
+            className="text-sm font-medium text-[#7a839a] group-hover:text-[#e8eaf0] whitespace-nowrap overflow-hidden transition-colors"
+            style={{
+              opacity: expanded ? 1 : 0,
+              width: expanded ? 'auto' : 0,
+              transition: 'opacity 140ms ease',
+            }}
+          >
+            My Personal Space
+          </span>
+        </button>
+      </div>
+
       {/* Projects list */}
       <div className="flex-1 overflow-y-auto py-3">
         {/* Header row */}
