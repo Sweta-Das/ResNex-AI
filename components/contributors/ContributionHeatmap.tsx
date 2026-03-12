@@ -14,7 +14,7 @@ type ContributionResponse = {
 }
 
 type ContributionHeatmapProps = {
-  projectId: string
+  projectId: string | null
 }
 
 const skeletonDays = Array.from({ length: 112 }, (_, index) => index)
@@ -55,7 +55,10 @@ export function ContributionHeatmap({ projectId }: ContributionHeatmapProps) {
     async function loadContributions() {
       setLoading(true)
       try {
-        const response = await fetch(`/api/projects/${projectId}/contributions/me`)
+        const url = projectId
+          ? `/api/projects/${projectId}/contributions/me`
+          : '/api/dashboard/contributions'
+        const response = await fetch(url)
         if (!response.ok) {
           if (!cancelled) setData(buildEmptyResponse())
           return
