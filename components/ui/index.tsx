@@ -38,26 +38,57 @@ export function Button({
 
 // ─── Input ─────────────────────────────────────────────────────────────────────
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  id?: string
   label?: string
+  ariaLabel?: string
+  hint?: string
   error?: string
   icon?: React.ReactNode
 }
 
-export function Input({ label, error, icon, className = '', ...props }: InputProps) {
+export function Input({ id, label, ariaLabel, hint, error, icon, className = '', ...props }: InputProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-xs text-[#7a839a] font-medium uppercase tracking-wider">{label}</label>}
+      {label && (
+        <label
+          htmlFor={id}
+          className="text-xs text-[#7a839a] font-medium uppercase tracking-wider"
+        >
+          {label}
+        </label>
+      )}
       <div className="relative">
-        {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a839a]">{icon}</span>}
+        {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a839a]" aria-hidden="true">{icon}</span>}
         <input
+          id={id}
+          aria-label={!label ? ariaLabel : undefined}
+          aria-describedby={[hint && id && `${id}-hint`, error && id && `${id}-error`].filter(Boolean).join(' ') || undefined}
+          aria-invalid={!!error}
           className={`w-full bg-[#12151c] border border-[#252a38] rounded-lg text-[#e8eaf0] placeholder:text-[#3d4558]
-            focus:outline-none focus:border-[#4f8ef7] focus:ring-1 focus:ring-[#4f8ef7]/30 transition-all
+            focus:border-[#4f8ef7] focus:ring-1 focus:ring-[#4f8ef7]/30 transition-all
             ${icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 text-sm ${error ? 'border-[#ef4444]' : ''} ${className}`}
           {...props}
         />
       </div>
-      {error && <p className="text-xs text-[#ef4444]">{error}</p>}
+      {hint && id && <p id={`${id}-hint`} className="text-xs" style={{ color: 'var(--color-muted)', marginTop: 4 }}>{hint}</p>}
+      {error && id && <ErrorText id={`${id}-error`}>{error}</ErrorText>}
+      {error && !id && <p className="text-xs" style={{ color: 'var(--color-error-text)' }}><span aria-hidden="true">✕ </span>{error}</p>}
     </div>
+  )
+}
+
+// ─── ErrorText ─────────────────────────────────────────────────────────────────
+export function ErrorText({ children, id }: { children: React.ReactNode; id?: string }) {
+  return (
+    <p
+      id={id}
+      role="alert"
+      aria-live="assertive"
+      style={{ color: 'var(--color-error-text)', fontSize: 14, marginTop: 4 }}
+    >
+      <span aria-hidden="true">✕ </span>
+      {children}
+    </p>
   )
 }
 
@@ -72,7 +103,7 @@ export function Textarea({ label, className = '', ...props }: TextareaProps) {
       {label && <label className="text-xs text-[#7a839a] font-medium uppercase tracking-wider">{label}</label>}
       <textarea
         className={`w-full bg-[#12151c] border border-[#252a38] rounded-lg text-[#e8eaf0] placeholder:text-[#3d4558]
-          focus:outline-none focus:border-[#4f8ef7] focus:ring-1 focus:ring-[#4f8ef7]/30 transition-all
+          focus:border-[#4f8ef7] focus:ring-1 focus:ring-[#4f8ef7]/30 transition-all
           px-3 py-2.5 text-sm resize-none ${className}`}
         {...props}
       />
@@ -81,10 +112,31 @@ export function Textarea({ label, className = '', ...props }: TextareaProps) {
 }
 
 // ─── Badge / Status Pill ───────────────────────────────────────────────────────
+const STATUS_ICONS: Record<string, string> = {
+  ready:        '✓',
+  processing:   '⟳',
+  failed:       '✕',
+  pending:      '◦',
+  draft:        '◦',
+  submitted:    '✓',
+  approved:     '✓',
+  active:       '●',
+  review:       '⚠',
+  merged:       '✓',
+  done:         '✓',
+  not_started:  '◦',
+  in_progress:  '⟳',
+}
+
 export function StatusPill({ status }: { status: string }) {
   const label = status.replace(/_/g, ' ')
+  const icon = STATUS_ICONS[status.toLowerCase()] ?? '●'
   return (
-    <span className={`status-${status} inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium`}>
+    <span
+      aria-label={label}
+      className={`status-${status} inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium`}
+    >
+      <span aria-hidden="true">{icon} </span>
       {label}
     </span>
   )
@@ -296,7 +348,7 @@ export function Select({ label, options, className = '', ...props }: SelectProps
       {label && <label className="text-xs text-[#7a839a] font-medium uppercase tracking-wider">{label}</label>}
       <select
         className={`w-full bg-[#12151c] border border-[#252a38] rounded-lg text-[#e8eaf0]
-          focus:outline-none focus:border-[#4f8ef7] transition-all px-3 py-2.5 text-sm
+          focus:border-[#4f8ef7] transition-all px-3 py-2.5 text-sm
           appearance-none cursor-pointer ${className}`}
         {...props}
       >

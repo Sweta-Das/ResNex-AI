@@ -139,7 +139,7 @@ export default function ChatPage() {
         userAvatarUrl: user.imageUrl,
         createdAt: new Date(),
       }])
-    } catch { error('Failed to send message') }
+    } catch { error("Couldn't send — your message is still here. Try again.") }
     finally { setSending(false) }
   }
 
@@ -189,14 +189,17 @@ export default function ChatPage() {
           activeTab={tabs[1].href}
           actions={
             <button
+              type="button"
               onClick={togglePanel}
+              aria-label={agentPanelOpen ? 'Close AI agent panel' : 'Open AI agent panel'}
+              aria-expanded={agentPanelOpen}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
                 agentPanelOpen
                   ? 'bg-[#7c6af5] text-white border-[#7c6af5]'
                   : 'bg-[#1a1f2e] text-[#7a839a] border-[#252a38] hover:text-[#e8eaf0]'
               }`}
             >
-              🤖 Agent Panel
+              <span aria-hidden="true">🤖</span> Agent Panel
             </button>
           }
         />
@@ -204,7 +207,13 @@ export default function ChatPage() {
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 flex flex-col overflow-hidden max-w-3xl w-full mx-auto px-4 pb-4 pt-6">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto flex flex-col gap-4 pb-4">
+            <div
+              className="flex-1 overflow-y-auto flex flex-col gap-4 pb-4"
+              role="log"
+              aria-live="polite"
+              aria-label="Chat messages"
+              aria-relevant="additions"
+            >
               {messages.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16">
                   <div className="w-14 h-14 rounded-2xl bg-[#4f8ef7]/10 border border-[#4f8ef7]/20 flex items-center justify-center">
@@ -219,7 +228,11 @@ export default function ChatPage() {
                 messages.map((msg) => {
                   const isMe = msg.userId === user?.id
                   return (
-                    <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                    <div
+                      key={msg.id}
+                      className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}
+                      aria-label={`${isMe ? 'You' : msg.userFullName}: ${msg.content}`}
+                    >
                       <Avatar name={msg.userFullName} src={msg.userAvatarUrl} size={32} className="flex-shrink-0" />
                       <div className={`max-w-[70%] flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
                         <div className="flex items-center gap-2">

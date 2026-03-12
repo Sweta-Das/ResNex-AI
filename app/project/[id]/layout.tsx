@@ -2,10 +2,13 @@
 // app/project/[id]/layout.tsx
 // Wraps all project sub-pages with the sidebar
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useParams, useRouter, usePathname } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { Sidebar } from '../../../components/layout/Sidebar'
 import { Modal, Button, Input, Textarea, ToastProvider, useToast } from '../../../components/ui'
+import { WelcomeStrip } from '../../../components/belonging/WelcomeStrip'
+import { MilestoneQueue } from '../../../components/belonging/MilestoneQueue'
 import { Project } from '../../../types'
 
 function CreateProjectModal({ open, onClose, onCreated }: {
@@ -39,8 +42,8 @@ function CreateProjectModal({ open, onClose, onCreated }: {
   return (
     <Modal open={open} onClose={onClose} title="Create New Project">
       <div className="flex flex-col gap-4">
-        <Input label="Project Title" placeholder="e.g. AI Ethics in STEM Education" value={title} onChange={e => setTitle(e.target.value)} />
-        <Input label="Research Topic" placeholder="e.g. Bias in AI Assessment Tools" value={topic} onChange={e => setTopic(e.target.value)} />
+        <Input id="create-title" label="Project Title" placeholder="e.g. AI Ethics in STEM Education" value={title} onChange={e => setTitle(e.target.value)} />
+        <Input id="create-topic" label="Research Topic" placeholder="e.g. Bias in AI Assessment Tools" value={topic} onChange={e => setTopic(e.target.value)} />
         <Textarea label="Description" placeholder="Brief description of the research goals..." value={description} onChange={e => setDescription(e.target.value)} rows={3} />
         <div className="flex gap-3 justify-end mt-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -54,10 +57,16 @@ function CreateProjectModal({ open, onClose, onCreated }: {
 export default function ProjectLayout({ children }: { children: React.ReactNode }) {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const pathname = usePathname()
+  const { user: clerkUser } = useUser()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [myRoles, setMyRoles] = useState<Record<string, string>>({})
+
+  // Suppress WelcomeStrip on the LaTeX editor page
+  const isLatexPage = pathname?.includes('/latex')
+  const firstName = clerkUser?.firstName || clerkUser?.fullName?.split(' ')[0] || 'researcher'
 
   useEffect(() => {
     fetch('/api/projects')
@@ -74,8 +83,10 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
 
   return (
     <>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <ToastProvider />
       <div className="flex h-screen overflow-hidden">
+        <nav aria-label="Project navigation">
         <Sidebar
           projects={projects}
           loading={loading}
@@ -84,7 +95,16 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
           onCreateProject={() => setShowCreate(true)}
           myRole={myRoles}
         />
-        <main className="flex-1 overflow-hidden flex flex-col">
+        </nav>
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-hidden flex flex-col">
+          {!isLatexPage && (
+            <Suspense fallback={null}>
+              <WelcomeStrip
+                projectId={params.id}
+                userName={firstName}
+              />
+            </Suspense>
+          )}
           {children}
         </main>
       </div>
@@ -93,6 +113,10 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
         onClose={() => setShowCreate(false)}
         onCreated={p => { setProjects(prev => [p, ...prev]); router.push(`/project/${p.id}`) }}
       />
+      {/* Milestone toasts — persists across tab navigation, suppressed inside MilestoneQueue on /latex */}
+      <MilestoneQueue projectId={params.id} />
+      {/* Screen reader live announcer — used by toasts and milestone notifications */}
+      <div id="sr-announcer" aria-live="polite" aria-atomic="true" className="sr-only" />
     </>
   )
 }

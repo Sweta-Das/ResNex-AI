@@ -26,9 +26,18 @@ const statusColors: Record<string, string> = {
   failed: 'bg-[#f43f5e]/15 text-[#f43f5e] border-[#f43f5e]/20',
 }
 
+const statusSymbols: Record<string, string> = {
+  ready: '✓', pending: '◦', processing: '⟳', failed: '✕',
+}
+
 function StatusBadge({ status }: { status: string }) {
+  const symbol = statusSymbols[status] ?? '●'
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${statusColors[status] || 'bg-[#1a1f2e] text-[#7a839a] border-[#252a38]'}`}>
+    <span
+      aria-label={status}
+      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${statusColors[status] || 'bg-[#1a1f2e] text-[#7a839a] border-[#252a38]'}`}
+    >
+      <span aria-hidden="true">{symbol} </span>
       {status}
     </span>
   )
@@ -126,12 +135,12 @@ export default function LibraryPage() {
         method: 'POST',
         body: formData,
       })
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) throw new Error('upload')
 
       success(`"${file.name}" added to library — summarizing...`)
       refresh()
     } catch {
-      error('Upload failed. Please try again.')
+      error("Upload didn't finish. Check the file is under 50MB and try again.")
     } finally {
       setUploading(false)
       e.target.value = ''
@@ -151,9 +160,9 @@ export default function LibraryPage() {
           activeTab={tabs[4].href}
         />
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="library-layout flex-1 flex overflow-hidden">
           {/* Paper list sidebar */}
-          <div className="w-72 flex-shrink-0 flex flex-col border-r border-[#1a1f2e] bg-[#0d1018]">
+          <div className="library-list w-72 flex-shrink-0 flex flex-col border-r border-[#1a1f2e] bg-[#0d1018]">
             <div className="p-4 border-b border-[#1a1f2e]">
               <label
                 className={`flex items-center justify-center gap-2 bg-[#4f8ef7] hover:bg-[#3d7de8] text-white px-4 py-2.5 rounded-xl cursor-pointer font-bold text-xs uppercase tracking-wide transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
@@ -185,7 +194,11 @@ export default function LibraryPage() {
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div
+              className="flex-1 overflow-y-auto"
+              role="list"
+              aria-label="Research papers"
+            >
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Spinner size={16} />
@@ -199,6 +212,8 @@ export default function LibraryPage() {
                 papers.map((paper) => (
                   <button
                     key={paper.id}
+                    role="listitem"
+                    aria-selected={selected?.id === paper.id}
                     onClick={() => setSelected(paper)}
                     className={`w-full text-left px-4 py-3 border-b border-[#1a1f2e] hover:bg-[#1a1f2e] transition-colors ${selected?.id === paper.id ? 'bg-[#4f8ef7]/10 border-l-2 border-l-[#4f8ef7]' : ''}`}
                   >
@@ -216,7 +231,11 @@ export default function LibraryPage() {
           </div>
 
           {/* Paper detail */}
-          <div className="flex-1 overflow-y-auto p-6 bg-[#0a0c10]">
+          <div
+            className="library-detail flex-1 overflow-y-auto p-6 bg-[#0a0c10]"
+            aria-label="Paper details"
+            aria-live="polite"
+          >
             {!selected ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">

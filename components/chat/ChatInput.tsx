@@ -205,8 +205,8 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={files.length >= MAX_FILES || isLoading || disabled}
-          title="Attach file · PNG, JPG, PDF, CSV · max 10MB · up to 3 files"
-          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+          aria-label="Attach a file — PNG, JPG, PDF or CSV, max 10MB, up to 3 files"
+          className="touch-target-expand w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
             bg-[#1a1f2e] border border-[#252a38] text-[#7a839a] hover:text-[#e8eaf0]
             hover:border-[#4f8ef7] transition-colors disabled:opacity-40"
         >
@@ -225,8 +225,13 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
 
         {/* Textarea */}
         <div className="flex-1 relative">
+          <label htmlFor="chat-input" className="sr-only">
+            Write a message to the project chat
+          </label>
           <textarea
             ref={inputRef}
+            id="chat-input"
+            aria-describedby="chat-input-hint"
             value={value}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
@@ -234,10 +239,13 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
             rows={1}
             disabled={disabled || isLoading}
             className="w-full bg-[#1a1f2e] border border-[#252a38] rounded-2xl px-4 py-3 text-sm
-              text-[#e8eaf0] placeholder:text-[#3d4558] focus:outline-none focus:border-[#4f8ef7]
+              text-[#e8eaf0] placeholder:text-[#3d4558] focus:border-[#4f8ef7]
               transition-all resize-none leading-normal disabled:opacity-50"
             style={{ minHeight: '44px', maxHeight: '120px' }}
           />
+          <span id="chat-input-hint" className="sr-only">
+            Type @agent to ask the AI assistant. Enter sends, Shift+Enter for a new line.
+          </span>
           {hasAgent && (
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[#7c6af5] font-bold pointer-events-none">
               @agent
@@ -250,7 +258,9 @@ export function ChatInput({ onSend, onAgentAction, sending, placeholder, disable
           type="button"
           onClick={handleSend}
           disabled={!canSend}
-          className="w-10 h-10 rounded-2xl bg-[#4f8ef7] hover:bg-[#3d7de8] disabled:opacity-40
+          aria-label={isLoading || anyUploading ? 'Sending message' : 'Send message'}
+          aria-disabled={!canSend}
+          className="touch-target-expand w-10 h-10 rounded-2xl bg-[#4f8ef7] hover:bg-[#3d7de8] disabled:opacity-40
             flex items-center justify-center transition-all flex-shrink-0"
         >
           {isLoading || anyUploading ? (

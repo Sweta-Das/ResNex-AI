@@ -21,8 +21,12 @@ export function Sidebar({ projects, loading, selectedId, onSelect, onCreateProje
   const { user } = useUser()
   const router = useRouter()
 
-  const statusColors: Record<string, string> = {
-    draft: '#7a839a', active: '#4f8ef7', review: '#f59e0b', merged: '#3ecf8e', done: '#3ecf8e'
+  const STATUS_MAP: Record<string, { symbol: string; color: string }> = {
+    active:    { symbol: '●', color: 'var(--color-success)' },
+    draft:     { symbol: '◦', color: 'var(--color-muted)'   },
+    review:    { symbol: '⚠', color: 'var(--color-warning)' },
+    merged:    { symbol: '✓', color: 'var(--color-green)'   },
+    done:      { symbol: '✓', color: 'var(--color-green)'   },
   }
 
   return (
@@ -46,9 +50,10 @@ export function Sidebar({ projects, loading, selectedId, onSelect, onCreateProje
         <div className="px-4 mb-2 flex items-center justify-between">
           <span className="text-[10px] font-semibold text-[#3d4558] uppercase tracking-widest">Projects</span>
           <button
+            type="button"
             onClick={onCreateProject}
-            className="w-5 h-5 rounded flex items-center justify-center text-[#7a839a] hover:text-[#4f8ef7] hover:bg-[#4f8ef7]/10 transition-all"
-            title="New project"
+            aria-label="Create new project"
+            className="touch-target-expand w-5 h-5 rounded flex items-center justify-center text-[#7a839a] hover:text-[#4f8ef7] hover:bg-[#4f8ef7]/10 transition-all"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 5v14M5 12h14"/>
@@ -72,7 +77,9 @@ export function Sidebar({ projects, loading, selectedId, onSelect, onCreateProje
             {projects.map((p, i) => (
               <button
                 key={p.id}
+                type="button"
                 onClick={() => onSelect(p.id)}
+                aria-current={selectedId === p.id ? 'page' : undefined}
                 className={`w-full text-left px-3 py-2.5 rounded-lg transition-all duration-150 group animate-fade-up delay-${Math.min(i + 1, 5)}`}
                 style={{
                   background: selectedId === p.id ? 'rgba(79,142,247,0.1)' : 'transparent',
@@ -83,10 +90,15 @@ export function Sidebar({ projects, loading, selectedId, onSelect, onCreateProje
                   <span className={`text-sm font-medium truncate ${selectedId === p.id ? 'text-[#e8eaf0]' : 'text-[#7a839a] group-hover:text-[#e8eaf0]'} transition-colors`}>
                     {p.title}
                   </span>
-                  <div
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-2"
-                    style={{ background: statusColors[p.status] || '#7a839a' }}
-                  />
+                  {(() => {
+                    const s = STATUS_MAP[p.status] ?? STATUS_MAP.draft
+                    return (
+                      <>
+                        <span aria-hidden="true" className="flex-shrink-0 ml-2 text-[10px]" style={{ color: s.color }}>{s.symbol}</span>
+                        <span className="sr-only">{p.status}</span>
+                      </>
+                    )
+                  })()}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className={`text-[10px] capitalize ${selectedId === p.id ? 'text-[#4f8ef7]' : 'text-[#3d4558]'}`}>
@@ -113,9 +125,10 @@ export function Sidebar({ projects, loading, selectedId, onSelect, onCreateProje
             <p className="text-[10px] text-[#3d4558] truncate">{user?.primaryEmailAddress?.emailAddress}</p>
           </div>
           <button
+            type="button"
             onClick={() => signOut(() => router.push('/login'))}
-            className="text-[#3d4558] hover:text-[#ef4444] transition-colors"
-            title="Sign out"
+            aria-label="Sign out"
+            className="touch-target-expand text-[#3d4558] hover:text-[#ef4444] transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
