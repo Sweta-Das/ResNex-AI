@@ -21,7 +21,6 @@ export default function LatexPage() {
   const { setFiles, upsertFile, activeFileId, files } = useLatexStore()
   const socketRef = useRef<Socket | null>(null)
   const [conflict, setConflict] = useState<{ userName: string; fileName: string } | null>(null)
-  const [activePane, setActivePane] = useState<'files' | 'editor' | 'preview'>('editor')
 
   const tabs = [
     { label: 'Overview',     href: `/project/${id}` },
@@ -94,44 +93,8 @@ export default function LatexPage() {
         <TopActionBar projectId={id} />
         {conflict && <ConflictBanner userName={conflict.userName} fileName={conflict.fileName} />}
 
-        {/* Mobile pane switcher — hidden on desktop */}
-        <div
-          className="md:hidden"
-          role="tablist"
-          aria-label="Editor panels"
-          style={{ display: 'flex', borderBottom: '1px solid var(--color-border)' }}
-        >
-          {(['files', 'editor', 'preview'] as const).map(pane => (
-            <button
-              key={pane}
-              type="button"
-              role="tab"
-              aria-selected={activePane === pane}
-              onClick={() => setActivePane(pane)}
-              style={{
-                flex: 1,
-                padding: '10px',
-                background: 'none',
-                border: 'none',
-                borderBottom: activePane === pane
-                  ? '2px solid var(--color-blue)'
-                  : '2px solid transparent',
-                color: activePane === pane
-                  ? 'var(--color-blue)'
-                  : 'var(--color-muted)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 13,
-                cursor: 'pointer',
-                textTransform: 'capitalize',
-              }}
-            >
-              {pane}
-            </button>
-          ))}
-        </div>
-
         <div className="flex-1 min-h-0 flex flex-row">
-          <div className={`w-60 flex-shrink-0 h-full flex flex-col overflow-hidden ${activePane !== 'files' ? 'hidden md:flex md:flex-col' : ''}`}>
+          <div className="w-52 flex-shrink-0 h-full flex flex-col overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden">
               <FileTree projectId={id} onRefresh={() => {
                 fetch(`/api/projects/${id}/latex/files`)
@@ -144,7 +107,7 @@ export default function LatexPage() {
 
           <div className="w-px bg-[#1a1f2e] flex-shrink-0 hidden md:block" />
 
-          <div className={`flex-1 min-w-0 flex flex-col h-full overflow-hidden ${activePane !== 'editor' ? 'hidden md:flex' : ''}`}>
+          <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
             {activeFile?.fileName.startsWith('sections/') && activeFile.fileName.endsWith('.json') ? (
               <CellEditor file={activeFile} projectId={id} />
             ) : (
@@ -158,7 +121,7 @@ export default function LatexPage() {
 
           <div className="w-px bg-[#1a1f2e] flex-shrink-0 hidden md:block" />
 
-          <div className={`w-[400px] flex-shrink-0 h-full overflow-hidden flex flex-col ${activePane !== 'preview' ? 'hidden md:flex' : ''}`}>
+          <div className="w-[560px] flex-shrink-0 h-full overflow-hidden flex flex-col">
             <PdfPreview projectId={id} />
           </div>
         </div>
