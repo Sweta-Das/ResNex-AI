@@ -7,6 +7,8 @@ node_modules/
 .next/
 out/
 build/
+cache/
+dist/
 
 # ── Environment variables (NEVER commit these) ────────────────
 .env
@@ -25,11 +27,6 @@ Thumbs.db
 *.swo
 .idea/
 .vscode/settings.json
-
-# ── Turbopack Cache ──────────────────────────────────────────────
-**/dev/cache/
-**/turbopack/
-dashboard_0/dev/cache/
 
 # ── Logs ─────────────────────────────────────────────────────
 npm-debug.log*
