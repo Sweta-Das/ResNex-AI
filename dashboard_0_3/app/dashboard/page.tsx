@@ -230,11 +230,31 @@ export default function DashboardPage() {
 
   async function fetchProjects() {
     try {
-      const res = await fetch('/api/projects')
-      const text = await res.text()
-      if (!text) { console.error('[fetchProjects] empty response'); return }
-      const data = JSON.parse(text)
-      if (!Array.isArray(data)) { console.error('[fetchProjects] server error:', data); return }
+      const res = await fetch('/api/projects', {
+        headers: { Accept: 'application/json' },
+      })
+
+      const contentType = res.headers.get('content-type') || ''
+      const data: unknown = contentType.includes('application/json') ? await res.json() : await res.text()
+
+      if (!res.ok) {
+        const message =
+          typeof data === 'string'
+            ? data
+            : (data && typeof data === 'object' && 'error' in data && typeof (data as any).error === 'string')
+              ? (data as any).error
+              : `Request failed (${res.status})`
+        console.error('[fetchProjects] request failed:', { status: res.status, message })
+        setProjects([])
+        setMyRoles({})
+        return
+      }
+
+      if (!Array.isArray(data)) {
+        console.error('[fetchProjects] unexpected response:', data)
+        return
+      }
+
       setProjects(data)
       const roles: Record<string, string> = {}
       data.forEach((p: any) => { if (p.myRole) roles[p.id] = p.myRole })

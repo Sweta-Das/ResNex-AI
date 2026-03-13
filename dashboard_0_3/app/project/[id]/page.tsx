@@ -478,10 +478,9 @@ export default function ProjectDashboard() {
 
         <div className="flex-1 overflow-y-auto p-8 bg-[#0a0c10]">
           <div className="max-w-6xl mx-auto grid grid-cols-3 gap-6">
-            {/* Left column — members / moderation */}
-            <div className="col-span-2 flex flex-col gap-6">
-              {/* Admin panel tabs */}
-              {myRole === 'admin' && (
+            {/* Admin panel tabs */}
+            {myRole === 'admin' && (
+              <div className="col-span-3">
                 <div className="flex gap-1 bg-[#0d1018] border border-[#1a1f2e] rounded-xl p-1 w-fit">
                   <button
                     onClick={() => setActivePanel('overview')}
@@ -515,8 +514,11 @@ export default function ProjectDashboard() {
                     Admin
                   </button>
                 </div>
-              )}
+              </div>
+            )}
 
+            {/* Left column — members / moderation */}
+            <div className="col-span-2 flex flex-col gap-6">
               {activePanel === 'moderation' && myRole === 'admin' ? (
                 <>
                   <h2 className="text-xs font-semibold text-[#3d4558] uppercase tracking-widest">
@@ -566,31 +568,6 @@ export default function ProjectDashboard() {
             <div className="flex flex-col gap-6">
               <GroupChat projectId={id} />
 
-              <ContributionHeatmap projectId={id} />
-
-              {/* Quick nav */}
-              <Card>
-                <h3 className="font-semibold text-sm text-[#e8eaf0] mb-3">Quick Access</h3>
-                <div className="flex flex-col gap-2">
-                  {[
-                    { label: 'Review', href: `/project/${id}/review`, icon: '👁', desc: 'Read team sections' },
-                    { label: 'Output', href: `/project/${id}/output`, icon: '⬇', desc: 'Merged document' },
-                    ...(myRole === 'admin' ? [{ label: 'Admin', href: `/project/${id}/admin`, icon: '⚙', desc: 'Manage project' }] : []),
-                  ].map(nav => (
-                    <button
-                      key={nav.href}
-                      onClick={() => router.push(nav.href)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#1a1f2e] transition-colors text-left group"
-                    >
-                      <span className="text-base">{nav.icon}</span>
-                      <div>
-                        <p className="text-sm font-medium text-[#c8cad0] group-hover:text-[#e8eaf0] transition-colors">{nav.label}</p>
-                        <p className="text-xs text-[#3d4558]">{nav.desc}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </Card>
               <NormalizingPanel projectId={id} />
 
               <GrowthTracker projectId={id} />

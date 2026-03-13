@@ -33,6 +33,7 @@ export function FileTreeItem({ file, projectId, isActive, onDelete }: Props) {
   const [showMenu, setShowMenu] = useState(false)
   const isUnsaved = unsavedIds.has(file.id)
   const isSection = file.fileName.endsWith('.json') && file.fileName.startsWith('sections/')
+  const canDelete = !file.isMain
 
   return (
     <div
@@ -47,12 +48,31 @@ export function FileTreeItem({ file, projectId, isActive, onDelete }: Props) {
       </span>
       {isUnsaved && <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] flex-shrink-0" title="Unsaved" />}
 
+      {/* Inline delete control for section files */}
+      {isSection && canDelete && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete(file.id) }}
+          className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-md text-[#3d4558] hover:text-[#f87171] hover:bg-[#1a1f2e] transition-all flex-shrink-0"
+          title="Delete section"
+          aria-label="Delete section"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 6h18" />
+            <path d="M8 6V4h8v2" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+          </svg>
+        </button>
+      )}
+
       {/* Context menu */}
       {showMenu && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
           <div className="absolute left-full top-0 ml-1 z-50 bg-[#0d1018] border border-[#252a38] rounded-lg shadow-xl overflow-hidden min-w-[120px]">
-            {!file.isMain && (
+            {canDelete && (
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(file.id); setShowMenu(false) }}
                 className="w-full px-3 py-2 text-left text-xs text-[#f87171] hover:bg-[#1a1f2e] transition-colors"

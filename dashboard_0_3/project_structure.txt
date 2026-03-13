@@ -5,7 +5,7 @@ dashboard_0_3/
 ├── next.config.js
 ├── package.json
 ├── postcss.config.js
-├── proxy.ts
+├── middleware.ts
 ├── README.md
 ├── SPEC_LATEX_TEMPLATES.md
 ├── SPEC_LATEX.md

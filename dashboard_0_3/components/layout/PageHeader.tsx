@@ -4,7 +4,6 @@
 import React from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { StatusPill } from '../ui'
-import ThemeToggle from "@/components/ui/theme-toggle"
 
 interface Tab { label: string; href: string; icon?: string }
 
@@ -60,7 +59,7 @@ export function PageHeader({ title, subtitle, status, tabs, activeTab, actions, 
               {subtitle && <p className="text-sm text-[#7a839a]">{subtitle}</p>}
             </div>
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}<ThemeToggle/></div>}
+          {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
 
         {tabs && (
