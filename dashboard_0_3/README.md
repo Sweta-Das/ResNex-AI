@@ -6,13 +6,12 @@ AI-Powered Collaborative Research Platform for STEM teams. Built with Next.js 16
 
 - **OTP Login** via Clerk (no passwords)
 - **Project workspaces** — each member writes their own section in a TipTap rich text editor
-- **AI Research Assistant** — Claude guides research without writing it for you
-- **Group Chat** — real-time messaging powered by Firebase Firestore
-- **Peer Review** — read and comment on teammates' submitted sections
-- **AI Merge & Bias Audit** — Claude merges all sections into one document and audits for bias
+- **AI Research Assistant** — AI guides research without writing it for you
+- **Group Chat** — real-time messaging powered by Firebase Firestore, with anonymous support
+- **AI Merge** — AI merges all sections into one document 
+- **Paper discovery + library** — ingest papers, generate summaries, tag, and compare sources
 - **LaTeX Editor** — IEEE / ACM / Generic paper format with live preview
 - **PDF Export** — download the final merged document
-- **Moderation** — every message and section is scanned before saving
 - **Contributorship Log** — transparent record of who did what
 
 ---
@@ -22,7 +21,7 @@ AI-Powered Collaborative Research Platform for STEM teams. Built with Next.js 16
 - Node.js 18+
 - A [Neon](https://neon.tech) PostgreSQL database
 - A [Clerk](https://clerk.com) application (Email OTP enabled)
-- An [Anthropic](https://console.anthropic.com) API key
+- An [LLM](https://console.llm.com) API key
 - A [Firebase](https://console.firebase.google.com) project with Firestore enabled
 - (Optional) An [Uploadthing](https://uploadthing.com) app for file uploads
 
@@ -55,7 +54,7 @@ Open `.env.local` and set:
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk dashboard → API Keys |
 | `CLERK_SECRET_KEY` | Clerk dashboard → API Keys |
 | `CLERK_WEBHOOK_SECRET` | Clerk dashboard → Webhooks |
-| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys |
+| `LLM_key` | console.llm.com → API Keys |
 | `NEXT_PUBLIC_FIREBASE_*` | Firebase console → Project Settings → Your apps |
 | `UPLOADTHING_SECRET` | uploadthing.com → Dashboard (optional) |
 | `UPLOADTHING_APP_ID` | uploadthing.com → Dashboard (optional) |
@@ -166,7 +165,7 @@ researchcollab/
 | Auth | Clerk (Email OTP) |
 | Database | Neon PostgreSQL + Prisma ORM |
 | Real-time chat | Firebase Firestore |
-| AI | Anthropic Claude (`claude-sonnet-4-20250514`) |
+| AI | OpenAI/Claude/HuggingFaceAPIKey/... |
 | Rich text editor | TipTap |
 | File uploads | Uploadthing |
 | Image generation | Pollinations.ai (free, no key needed) |
