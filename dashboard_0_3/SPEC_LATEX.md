@@ -1,4 +1,4 @@
-# ResearchCollab — LaTeX Layer Spec
+# ResNex-AI — LaTeX Layer Spec
 > For spec-driven development. Feed this to Claude Code phase by phase.
 
 ---

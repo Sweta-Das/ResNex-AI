@@ -24,16 +24,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = await req.json()
   const { email, role = 'member' } = body
 
-  if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  if (!normalizedEmail) return NextResponse.json({ error: 'Email required' }, { status: 400 })
+  if (!normalizedEmail.includes('@')) return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
 
   // Find or create invited user
-  let invitedUser = await prisma.user.findUnique({ where: { email } })
+  let invitedUser = await prisma.user.findUnique({ where: { email: normalizedEmail } })
   if (!invitedUser) {
     // Create placeholder — they'll fill in their name on first login
     invitedUser = await prisma.user.create({
       data: {
-        email,
-        full_name: email.split('@')[0], // placeholder
+        email: normalizedEmail,
+        full_name: normalizedEmail.split('@')[0], // placeholder
         language: 'en',
       },
     })

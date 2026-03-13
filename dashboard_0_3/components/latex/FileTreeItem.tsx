@@ -32,7 +32,7 @@ export function FileTreeItem({ file, projectId, isActive, onDelete }: Props) {
   const { setActiveFile, unsavedIds } = useLatexStore()
   const [showMenu, setShowMenu] = useState(false)
   const isUnsaved = unsavedIds.has(file.id)
-  const isSection = file.fileName.endsWith('.json') && file.fileName.startsWith('sections/')
+  const isSectionFile = file.fileName.startsWith('sections/')
   const canDelete = !file.isMain
 
   return (
@@ -44,18 +44,19 @@ export function FileTreeItem({ file, projectId, isActive, onDelete }: Props) {
     >
       <span className="flex-shrink-0 text-[11px]">{fileIcon(file)}</span>
       <span className="flex-1 truncate font-mono">
-        {isSection ? displayName(file.fileName) : file.fileName}
+        {isSectionFile ? displayName(file.fileName) : file.fileName}
       </span>
       {isUnsaved && <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] flex-shrink-0" title="Unsaved" />}
 
       {/* Inline delete control for section files */}
-      {isSection && canDelete && (
+      {isSectionFile && canDelete && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onDelete(file.id) }}
-          className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-md text-[#3d4558] hover:text-[#f87171] hover:bg-[#1a1f2e] transition-all flex-shrink-0"
-          title="Delete section"
-          aria-label="Delete section"
+          className="w-6 h-6 flex items-center justify-center rounded-md text-[#3d4558] hover:text-[#f87171] hover:bg-[#1a1f2e] transition-all flex-shrink-0
+            opacity-100 supports-[hover:hover]:opacity-0 supports-[hover:hover]:group-hover:opacity-100 focus:opacity-100"
+          title="Delete file"
+          aria-label="Delete file"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 6h18" />

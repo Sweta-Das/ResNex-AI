@@ -1,4 +1,4 @@
-# ResearchCollab
+# ResNex-AI
 
 AI-Powered Collaborative Research Platform for STEM teams. Built with Next.js 16, Clerk, Neon PostgreSQL, Prisma, Firebase, and Claude AI.
 

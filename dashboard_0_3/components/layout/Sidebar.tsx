@@ -62,7 +62,7 @@ export function Sidebar({ projects, loading, selectedId, onSelect, onCreateProje
               fontFamily: 'Syne, sans-serif',
             }}
           >
-            ResearchCollab
+            ResNex-AI
           </span>
         </div>
       </div>

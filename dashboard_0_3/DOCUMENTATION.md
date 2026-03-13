@@ -1,4 +1,4 @@
-# ResearchCollab — Full Codebase Documentation
+# ResNex-AI — Full Codebase Documentation
 
 > AI-Powered Collaborative Research Platform
 > STEM AI Hackathon 2026 · IIT Delhi x Microsoft Garage x Imperial College London
@@ -31,7 +31,7 @@
 
 ## 1. Project Overview
 
-ResearchCollab is a full-stack web application that enables small teams of academic researchers (STEM students and faculty) to collaborate on research papers. It combines:
+ResNex-AI is a full-stack web application that enables small teams of academic researchers (STEM students and faculty) to collaborate on research papers. It combines:
 
 - **Collaborative writing** with a TipTap rich-text editor and section ownership
 - **AI assistance** at every stage: topic breakdown, research chat, literature review drafting, bias auditing, section merging, LaTeX generation

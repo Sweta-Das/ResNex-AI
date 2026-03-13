@@ -66,7 +66,7 @@ export function PageHeader({ title, subtitle, status, tabs, activeTab, actions, 
           <div className="flex items-center gap-1 -mb-px">
             {tabs.map(tab => (
               <button
-                key={tab.href}
+                key={`${tab.href}-${tab.label}`}
                 onClick={() => router.push(tab.href)}
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-150 ${
                   effectiveTab === tab.href

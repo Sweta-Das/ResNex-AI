@@ -101,7 +101,7 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-[#e8eaf0]" style={{ fontFamily: 'Syne, sans-serif' }}>
-              ResearchCollab
+              ResNex-AI
             </h1>
             <p className="text-xs text-[#3d4558]">AI Research Platform</p>
           </div>

@@ -15,7 +15,7 @@ interface Props {
 export default function ShareToClassroom({ projectId, projectTitle }: Props) {
   const [courses, setCourses] = useState<Course[]>([])
   const [selectedCourse, setSelectedCourse] = useState('')
-  const [message, setMessage] = useState(`ResearchCollab submission: ${projectTitle}`)
+  const [message, setMessage] = useState(`ResNex-AI submission: ${projectTitle}`)
   const [loading, setLoading] = useState(false)
   const [shared, setShared] = useState(false)
   const [error, setError] = useState('')

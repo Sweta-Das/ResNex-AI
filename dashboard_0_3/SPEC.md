@@ -1,4 +1,4 @@
-# ResearchCollab — Spec-Driven Development Specification
+# ResNex-AI — Spec-Driven Development Specification
 
 > Version: 1.0 | Stack: Next.js 16 App Router · Clerk · Neon/PostgreSQL · Prisma · Socket.io · Claude API · Uploadthing
 
@@ -6,7 +6,7 @@
 
 ## 1. System Overview
 
-ResearchCollab is a multi-user collaborative research paper writing platform. Multiple team members each own one section of a shared research paper. An AI layer (Claude) assists at every stage: writing, research, moderation, merging, and output generation.
+ResNex-AI is a multi-user collaborative research paper writing platform. Multiple team members each own one section of a shared research paper. An AI layer (Claude) assists at every stage: writing, research, moderation, merging, and output generation.
 
 ### Core Loop
 ```

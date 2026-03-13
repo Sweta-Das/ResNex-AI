@@ -1,4 +1,4 @@
-# ResearchCollab — Personal Aggregate Dashboard Spec
+# ResNex-AI — Personal Aggregate Dashboard Spec
 ## Replaces the blank WelcomeScreen with meaningful cross-project activity
 
 ---
@@ -295,4 +295,3 @@ Same rules as Section 12 of imposter-syndrome-spec.md:
 4. Modify `ContributionHeatmap` for global mode
 5. `components/dashboard/AggregateDashboard.tsx`
 6. Modify `app/dashboard/page.tsx`
-

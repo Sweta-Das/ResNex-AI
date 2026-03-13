@@ -32,20 +32,21 @@ export default function AdminPage() {
   }, [id])
 
   async function inviteMember() {
-    if (!inviteEmail.trim()) return
+    const normalizedEmail = inviteEmail.trim().toLowerCase()
+    if (!normalizedEmail) return
     setInviting(true)
     try {
       const res = await fetch(`/api/projects/${id}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteEmail, role: 'member' }),
+        body: JSON.stringify({ email: normalizedEmail, role: 'member' }),
       })
       if (res.status === 409) { error('Already a member'); return }
       if (!res.ok) throw new Error()
       const member = await res.json()
       setMembers(prev => [...prev, member])
       setInviteEmail('')
-      success(`${inviteEmail} invited!`)
+      success(`${normalizedEmail} invited!`)
     } catch { error('Failed to invite member') }
     finally { setInviting(false) }
   }
@@ -78,13 +79,6 @@ export default function AdminPage() {
     { label: 'LaTeX', href: `/project/${id}/latex`, icon: 'τ' },
     { label: 'Output', href: `/project/${id}/output`, icon: '⬇' },
     { label: 'Admin ⚙', href: `/project/${id}/admin`, icon: '⚙' },
-    { label: 'Overview', href: `/project/${id}` },
-    { label: 'Chat', href: `/project/${id}/chat` },
-    { label: 'Discover', href: `/project/${id}/discover` },
-    { label: 'Library', href: `/project/${id}/library` },
-    { label: 'Agents', href: `/project/${id}/agents` },
-    { label: 'LaTeX', href: `/project/${id}/latex` },
-    { label: 'Admin ⚙', href: `/project/${id}/admin` },
   ]
 
   return (

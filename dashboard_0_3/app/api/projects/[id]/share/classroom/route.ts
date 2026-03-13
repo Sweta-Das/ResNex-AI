@@ -18,6 +18,6 @@ export async function POST(req: NextRequest, { params }: Params) {
   const project = await prisma.project.findUnique({ where: { id }, include: { finalOutput: true } })
   const pdfUrl = project?.finalOutput?.pdf_url
 
-  await postAnnouncement(accessToken, courseId, message || `ResearchCollab submission: ${project?.title}`, pdfUrl || undefined)
+  await postAnnouncement(accessToken, courseId, message || `ResNex-AI submission: ${project?.title}`, pdfUrl || undefined)
   return NextResponse.json({ shared: true })
 }

@@ -5,7 +5,7 @@ import { Providers } from "./providers"
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'ResearchCollab — AI Collaborative Research Platform',
+  title: 'ResNex-AI — AI Collaborative Research Platform',
   description: 'AI-powered collaborative research workspace for STEM students and educators',
 }
 
