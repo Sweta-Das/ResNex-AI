@@ -23,13 +23,14 @@ export default function LatexPage() {
   const [conflict, setConflict] = useState<{ userName: string; fileName: string } | null>(null)
 
   const tabs = [
-    { label: 'Overview',     href: `/project/${id}` },
-    { label: 'Chat',         href: `/project/${id}/chat` },
-    { label: 'Discover',     href: `/project/${id}/discover` },
-    { label: 'Library',      href: `/project/${id}/library` },
-    { label: 'Agents',       href: `/project/${id}/agents` },
-    { label: 'Contributors', href: `/project/${id}/contributors` },
-    { label: 'LaTeX',        href: `/project/${id}/latex` },
+    { label: 'Overview',     href: `/project/${id}`, icon: '⬡' },
+    { label: 'Chat',         href: `/project/${id}/chat`, icon: '💬' },
+    { label: 'Discover',     href: `/project/${id}/discover`, icon: '🔍' },
+    { label: 'Library',      href: `/project/${id}/library`, icon: '📚' },
+    { label: 'Agents',       href: `/project/${id}/agents`, icon: '🤖' },
+    { label: 'LaTeX',        href: `/project/${id}/latex`, icon: 'τ' },
+    { label: 'Output',       href: `/project/${id}/output`, icon: '⬇' },
+    { label: 'Contributors', href: `/project/${id}/contributors`, icon: '👥' },
   ]
 
   // Load file list on mount
@@ -45,10 +46,23 @@ export default function LatexPage() {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
     if (!socketUrl) return
 
-    const socket = io(socketUrl, { transports: ['websocket'] })
+    const socket = io(socketUrl, {
+      // Allow fallback to HTTP long-polling when WebSockets are blocked (common on some networks).
+      transports: ['polling', 'websocket'],
+      timeout: 8000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+    })
     socketRef.current = socket
 
     socket.emit('join_project', { projectId: id })
+
+    let loggedConnectError = false
+    socket.on('connect_error', (err) => {
+      if (loggedConnectError) return
+      loggedConnectError = true
+      console.warn('[latex socket] connection failed; continuing without realtime updates:', err?.message || err)
+    })
 
     // Another member saved a file — reload it
     socket.on('latex_file_updated', (data: { fileId: string; fileName: string; updatedBy: string }) => {
@@ -86,23 +100,20 @@ export default function LatexPage() {
     <>
       <ToastProvider />
       <div className="flex flex-col h-screen bg-[#0a0c10] overflow-hidden">
-        <PageHeader title="LaTeX Editor" tabs={tabs} activeTab="LaTeX" />
+        <PageHeader title="LaTeX Editor" tabs={tabs} />
         <TopActionBar projectId={id} />
         {conflict && <ConflictBanner userName={conflict.userName} fileName={conflict.fileName} />}
 
         <div className="flex-1 min-h-0 flex flex-row">
-          <div className="w-52 flex-shrink-0 h-full flex flex-col overflow-hidden">
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <FileTree projectId={id} onRefresh={() => {
-                fetch(`/api/projects/${id}/latex/files`)
-                  .then((r) => r.json())
-                  .then((data) => { if (Array.isArray(data)) setFiles(data) })
-              }} />
-            </div>
-            <WritingProgress projectId={id} />
+          <div className="w-60 flex-shrink-0 h-full overflow-hidden">
+            <FileTree projectId={id} onRefresh={() => {
+              fetch(`/api/projects/${id}/latex/files`)
+                .then((r) => r.json())
+                .then((data) => { if (Array.isArray(data)) setFiles(data) })
+            }} />
           </div>
 
-          <div className="w-px bg-[#1a1f2e] flex-shrink-0 hidden md:block" />
+          <div className="w-px bg-[#1a1f2e] flex-shrink-0" />
 
           <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
             {activeFile?.fileName.startsWith('sections/') && activeFile.fileName.endsWith('.json') ? (
@@ -116,10 +127,13 @@ export default function LatexPage() {
             )}
           </div>
 
-          <div className="w-px bg-[#1a1f2e] flex-shrink-0 hidden md:block" />
+          <div className="w-px bg-[#1a1f2e] flex-shrink-0" />
 
-          <div className="w-[560px] flex-shrink-0 h-full overflow-hidden flex flex-col">
-            <PdfPreview projectId={id} />
+          <div className="w-[400px] flex-shrink-0 h-full overflow-hidden flex flex-col">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <PdfPreview projectId={id} />
+            </div>
+            <WritingProgress projectId={id} />
           </div>
         </div>
       </div>
