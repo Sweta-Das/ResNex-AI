@@ -48,8 +48,8 @@ export function FileTreeItem({ file, projectId, isActive, onDelete }: Props) {
       </span>
       {isUnsaved && <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] flex-shrink-0" title="Unsaved" />}
 
-      {/* Inline delete control for section files */}
-      {isSectionFile && canDelete && (
+      {/* Inline delete control (always visible on touch) */}
+      {canDelete && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onDelete(file.id) }}

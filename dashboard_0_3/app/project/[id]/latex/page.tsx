@@ -46,10 +46,23 @@ export default function LatexPage() {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
     if (!socketUrl) return
 
-    const socket = io(socketUrl, { transports: ['websocket'] })
+    const socket = io(socketUrl, {
+      // Allow fallback to HTTP long-polling when WebSockets are blocked (common on some networks).
+      transports: ['polling', 'websocket'],
+      timeout: 8000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+    })
     socketRef.current = socket
 
     socket.emit('join_project', { projectId: id })
+
+    let loggedConnectError = false
+    socket.on('connect_error', (err) => {
+      if (loggedConnectError) return
+      loggedConnectError = true
+      console.warn('[latex socket] connection failed; continuing without realtime updates:', err?.message || err)
+    })
 
     // Another member saved a file — reload it
     socket.on('latex_file_updated', (data: { fileId: string; fileName: string; updatedBy: string }) => {
