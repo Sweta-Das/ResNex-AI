@@ -3,9 +3,9 @@
 This guide is a presenter-focused deep dive for explaining **how ResNex-AI works end-to-end**, plus a ready-to-use demo script and Q&A bank.
 
 Use this with:
-- `/home/runner/work/ResNex-AI/ResNex-AI/docs/DOCUMENTATION.md` (full codebase docs)
-- `/home/runner/work/ResNex-AI/ResNex-AI/docs/WORKSPACE_DOCUMENTATION.md` (workspace-specific flows)
-- `/home/runner/work/ResNex-AI/ResNex-AI/docs/SPEC.md` (product/system intent)
+- `docs/DOCUMENTATION.md` (full codebase docs)
+- `docs/WORKSPACE_DOCUMENTATION.md` (workspace-specific flows)
+- `docs/SPEC.md` (product/system intent)
 
 ---
 
@@ -21,12 +21,12 @@ Use this with:
 ### Core architecture
 
 - **Frontend**: Next.js App Router pages and reusable UI components.
-  - Main routes live under `/home/runner/work/ResNex-AI/ResNex-AI/app/project/[id]/`.
-- **Backend**: Next.js API routes under `/home/runner/work/ResNex-AI/ResNex-AI/app/api/`.
-- **Database**: Prisma + PostgreSQL schema in `/home/runner/work/ResNex-AI/ResNex-AI/prisma/schema.prisma`.
-- **AI layer**: Pluggable agents and model wrappers in `/home/runner/work/ResNex-AI/ResNex-AI/lib/agents/` and `/home/runner/work/ResNex-AI/ResNex-AI/lib/llm.ts`.
-- **Realtime**: Firebase chat integration + Socket server (`/home/runner/work/ResNex-AI/ResNex-AI/socket-server/`).
-- **Auth**: Clerk + app-level user mapping in `/home/runner/work/ResNex-AI/ResNex-AI/lib/auth.ts`.
+  - Main routes live under `app/project/[id]/`.
+- **Backend**: Next.js API routes under `app/api/`.
+- **Database**: Prisma + PostgreSQL schema in `prisma/schema.prisma`.
+- **AI layer**: Pluggable agents and model wrappers in `lib/agents/` and `lib/llm.ts`.
+- **Realtime**: Firebase chat integration + Socket server (`socket-server/`).
+- **Auth**: Clerk + app-level user mapping in `lib/auth.ts`.
 
 ---
 
@@ -135,11 +135,11 @@ There are two realtime mechanisms in the project:
 - **Socket.io server** for low-latency events (notably in LaTeX/conflict-oriented interactions)
 
 Socket server lives in:
-- `/home/runner/work/ResNex-AI/ResNex-AI/socket-server/index.ts`
-- `/home/runner/work/ResNex-AI/ResNex-AI/socket-server/package.json`
+- `socket-server/index.ts`
+- `socket-server/package.json`
 
 Client socket helper:
-- `/home/runner/work/ResNex-AI/ResNex-AI/lib/socket.ts`
+- `lib/socket.ts`
 
 ### Presentation angle
 
