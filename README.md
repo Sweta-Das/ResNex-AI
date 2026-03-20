@@ -1,4 +1,4 @@
-# ResearchCollab
+# ResNex-AI
 
 AI-powered collaborative content creation and knowledge curation platform for STEM teams.
 
