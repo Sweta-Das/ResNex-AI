@@ -75,6 +75,7 @@ This repository is organized around the expected solution components:
 
 - `docs/WORKSPACE_DOCUMENTATION.md` — how the app works (architecture, flows, data model)
 - `docs/DOCUMENTATION.md` — full codebase documentation
+- `docs/HACKATHON_PRESENTATION_GUIDE.md` — end-to-end technical deep dive + demo flow + Q&A prep
 - `docs/SPEC.md` — product/system spec
 - `docs/SPEC_LATEX.md` and `docs/SPEC_LATEX_TEMPLATES.md` — LaTeX workspace and templates
 - `docs/UI_DESIGN_CHOICES.md` — UI system notes
